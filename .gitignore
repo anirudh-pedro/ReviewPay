@@ -1,0 +1,143 @@
+# ============================================================================
+# RevivePay — .gitignore
+#
+# Committed on purpose:
+#   .env.example              documents every setting with working defaults
+#   .kiro/specs/              requirements, design, and task documents
+#   requirements.txt          pinned dependency manifest
+# ============================================================================
+
+# --- Python bytecode and build artefacts ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+sdist/
+wheels/
+*.egg-info/
+*.egg
+MANIFEST
+pip-wheel-metadata/
+
+# --- Virtual environments ---
+.venv/
+venv/
+ENV/
+env/
+.virtualenv/
+
+# --- Environment and secrets ---
+# Ignore every .env variant, then re-admit the committed template.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets.json
+credentials.json
+
+# --- Local database ---
+# Phase 0 runs on a local SQLite file created by scripts/init_db.py.
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+*.db-wal
+*.db-shm
+
+# --- Virtual clock state ---
+# Simulation time, regenerated from VIRTUAL_CLOCK_START on demand.
+# Committing it would ship one machine's clock position to everyone else.
+.revivepay_clock.json
+*revivepay_clock*.json
+
+# --- Testing and coverage ---
+.pytest_cache/
+.cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+nosetests.xml
+.tox/
+.nox/
+.hypothesis/
+
+# --- Type checkers and linters ---
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.ruff_cache/
+.pytype/
+.pyre/
+
+# --- Logs and local scratch ---
+*.log
+logs/
+# Throwaway probe and smoke scripts used while developing.
+_probe*.py
+_smoke*.py
+_verify*.py
+_tmp*.py
+scratch/
+
+# --- Jupyter ---
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# --- Editors and IDEs ---
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.bak
+*.orig
+
+# --- Operating system ---
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ============================================================================
+# Anticipated, so an accidental commit is impossible later.
+# Nothing below exists yet.
+# ============================================================================
+
+# --- Phase 0.5 dashboard (Node / Vite) ---
+node_modules/
+.vite/
+.parcel-cache/
+.next/
+.nuxt/
+.svelte-kit/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+
+# --- Phase 1 model artefacts ---
+# Trained models are reproducible from a seeded training script, so the
+# artefact is build output rather than source.
+*.joblib
+*.pkl
+*.pickle
+*.onnx
+*.h5
+models/
+artifacts/
+mlruns/

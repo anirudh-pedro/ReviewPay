@@ -1,0 +1,16 @@
+# RevivePay Phase 0 — backend dependencies
+# Python 3.11+. Compatible-release bounds; lock exact versions in CI if desired.
+#
+# Phase 0 is deliberately ML-free and scheduler-free. No scikit-learn, numpy,
+# joblib, APScheduler, Celery, Redis, or LLM SDK belongs in this file.
+# See .kiro/specs/revenue-recovery-engine/requirements.md Requirement 1.10.
+
+fastapi>=0.115,<1.0
+uvicorn[standard]>=0.30,<1.0
+pydantic>=2.8,<3.0
+pydantic-settings>=2.4,<3.0
+SQLAlchemy>=2.0,<2.1
+
+# --- Testing ---
+pytest>=8.0,<9.0
+httpx>=0.27,<1.0      # required by fastapi.testclient
