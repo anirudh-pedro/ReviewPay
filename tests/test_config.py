@@ -37,6 +37,8 @@ def _env_example_keys() -> tuple[set[str], set[str]]:
 def test_settings_load_with_no_env_file(monkeypatch, tmp_path):
     """Requirement 1.3: defaults work with no .env present."""
     monkeypatch.chdir(tmp_path)
+    # `_env_file=None` excludes dotenv input, not inherited process variables.
+    monkeypatch.delenv("API_PREFIX", raising=False)
     settings = Settings(_env_file=None)
     assert settings.app_name
     assert settings.api_prefix == "/api"

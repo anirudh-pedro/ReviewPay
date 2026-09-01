@@ -1,12 +1,51 @@
 """Enumeration membership tests (Requirement 3.1-3.4, 19.1)."""
 
+import pytest
+
 from app.core.enums import (
+    ActionStatus,
     ActionType,
     AuditEventType,
     CaseState,
+    ExecutionStatus,
+    FailureCategory,
     FailureReason,
+    PaymentMethod,
+    PaymentStatus,
     PolicyOutcome,
+    RiskLevel,
+    SubscriptionStatus,
+    Transience,
+    WorkflowStage,
 )
+
+
+@pytest.mark.parametrize(
+    ("enum_type", "expected_member_count"),
+    [
+        (PaymentStatus, 5),
+        (CaseState, 15),
+        (FailureReason, 7),
+        (ActionType, 7),
+        (ActionStatus, 7),
+        (PolicyOutcome, 3),
+        (RiskLevel, 3),
+        (WorkflowStage, 11),
+        (AuditEventType, 13),
+        (PaymentMethod, 5),
+        (SubscriptionStatus, 4),
+        (FailureCategory, 5),
+        (Transience, 3),
+        (ExecutionStatus, 5),
+    ],
+)
+def test_shared_enumerations_have_documented_member_counts(
+    enum_type, expected_member_count
+):
+    """Task 2: all shared enums are string-valued with stable member counts."""
+    assert issubclass(enum_type, str)
+    assert len(enum_type) == expected_member_count
+    assert all(isinstance(member.value, str) for member in enum_type)
 
 
 def test_failure_reason_has_exactly_seven_members():

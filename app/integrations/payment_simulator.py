@@ -251,6 +251,36 @@ class PaymentSimulatorExecutor:
             executed_at=self._clock.now(),
         )
 
+    def predict_outcome(
+        self,
+        reason: FailureReason,
+        action: ActionType,
+        payment_id: str,
+        attempt_number: int,
+    ) -> tuple[bool, dict[str, Any]]:
+        """Resolve what this action *would* do, without touching the payment.
+
+        Exposes the same decision function ``execute()`` uses, so a what-if
+        comparison reflects real simulator behaviour rather than a second model of
+        it. Read-only: nothing is persisted and no attempt is recorded.
+        """
+        return self._decide_outcome(reason, action, payment_id, attempt_number)
+
+    def predict_outcome(
+        self,
+        reason: FailureReason,
+        action: ActionType,
+        payment_id: str,
+        attempt_number: int,
+    ) -> tuple[bool, dict[str, Any]]:
+        """Resolve what this action *would* do, without touching the payment.
+
+        Exposes the same decision function ``execute()`` uses, so a what-if
+        comparison reflects real simulator behaviour rather than a second model of
+        it. Read-only: nothing is persisted and no attempt is recorded.
+        """
+        return self._decide_outcome(reason, action, payment_id, attempt_number)
+
     def _decide_outcome(
         self,
         reason: FailureReason,

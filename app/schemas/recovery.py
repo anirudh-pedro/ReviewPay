@@ -198,6 +198,13 @@ class AuditEventRead(BaseModel):
     message: str
     metadata: dict[str, Any] = Field(default_factory=dict)
     timestamp: datetime
+    sequence: int = Field(
+        default=0,
+        description=(
+            "Monotonic per-case ordering key. Several stages of one run share a "
+            "simulation timestamp, so a timeline must order by this."
+        ),
+    )
 
     @classmethod
     def from_model(cls, event) -> "AuditEventRead":
@@ -210,6 +217,7 @@ class AuditEventRead(BaseModel):
             message=event.message,
             metadata=event.meta or {},
             timestamp=event.timestamp,
+            sequence=event.sequence,
         )
 
 

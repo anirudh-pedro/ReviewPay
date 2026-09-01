@@ -120,6 +120,7 @@ $RECYCLE.BIN/
 # --- Phase 0.5 dashboard (Node / Vite) ---
 node_modules/
 .vite/
+*.tsbuildinfo
 .parcel-cache/
 .next/
 .nuxt/

@@ -1,0 +1,214 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1. Scaffold the project skeleton and dependency manifest": [
+      {
+        "executionId": "36b96823-5b49-46f5-a5fd-1de1864c4c60",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788166088453
+      },
+      {
+        "executionId": "36b96823-5b49-46f5-a5fd-1de1864c4c60",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788166109957
+      },
+      {
+        "executionId": "36b96823-5b49-46f5-a5fd-1de1864c4c60",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788166273221
+      }
+    ],
+    "2. Implement shared enumerations": [
+      {
+        "executionId": "36b96823-5b49-46f5-a5fd-1de1864c4c60",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788166088527
+      },
+      {
+        "executionId": "36b96823-5b49-46f5-a5fd-1de1864c4c60",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788166290156
+      },
+      {
+        "executionId": "fa0efc0e-d53d-41ca-8efe-dd55edca90de",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788167327349
+      }
+    ],
+    "3. Implement configuration and logging": [
+      {
+        "executionId": "36b96823-5b49-46f5-a5fd-1de1864c4c60",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788166088570
+      }
+    ],
+    "4. Implement domain errors": [
+      {
+        "executionId": "36b96823-5b49-46f5-a5fd-1de1864c4c60",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788166088624
+      }
+    ],
+    "5. Implement the virtual clock": [
+      {
+        "executionId": "36b96823-5b49-46f5-a5fd-1de1864c4c60",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788166088678
+      }
+    ],
+    "6. Implement database engine, session, and the seven models": [
+      {
+        "executionId": "36b96823-5b49-46f5-a5fd-1de1864c4c60",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788166088709
+      }
+    ],
+    "7. Implement pydantic request and response schemas": [
+      {
+        "executionId": "36b96823-5b49-46f5-a5fd-1de1864c4c60",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788166088744
+      }
+    ],
+    "8. Implement the FastAPI application factory and health endpoint": [
+      {
+        "executionId": "36b96823-5b49-46f5-a5fd-1de1864c4c60",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788166088779
+      }
+    ],
+    "9. Implement the payment service and payment endpoints": [
+      {
+        "executionId": "36b96823-5b49-46f5-a5fd-1de1864c4c60",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788166088828
+      }
+    ],
+    "10. Implement the state machine": [
+      {
+        "executionId": "36b96823-5b49-46f5-a5fd-1de1864c4c60",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788166088883
+      }
+    ],
+    "11. Implement the centralized audit service": [
+      {
+        "executionId": "36b96823-5b49-46f5-a5fd-1de1864c4c60",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788166088922
+      }
+    ],
+    "12. Implement the risk detector": [
+      {
+        "executionId": "36b96823-5b49-46f5-a5fd-1de1864c4c60",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788166088957
+      }
+    ],
+    "13. Implement the recovery context builder": [
+      {
+        "executionId": "36b96823-5b49-46f5-a5fd-1de1864c4c60",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788166088990
+      }
+    ],
+    "14. Implement the diagnosis engine": [
+      {
+        "executionId": "36b96823-5b49-46f5-a5fd-1de1864c4c60",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788166089023
+      }
+    ],
+    "15. Implement the candidate action generator": [
+      {
+        "executionId": "36b96823-5b49-46f5-a5fd-1de1864c4c60",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788166089055
+      }
+    ],
+    "16. Implement the deterministic recovery predictor": [
+      {
+        "executionId": "36b96823-5b49-46f5-a5fd-1de1864c4c60",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788166089092
+      }
+    ],
+    "17. Implement the expected recovery value calculator": [
+      {
+        "executionId": "36b96823-5b49-46f5-a5fd-1de1864c4c60",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788166089125
+      }
+    ],
+    "18. Implement the decision engine and structured explanation": [
+      {
+        "executionId": "36b96823-5b49-46f5-a5fd-1de1864c4c60",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788166089160
+      }
+    ],
+    "19. Implement the policy rule set and policy engine": [
+      {
+        "executionId": "36b96823-5b49-46f5-a5fd-1de1864c4c60",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788166089196
+      }
+    ],
+    "20. Implement the action executor interface and payment simulator": [
+      {
+        "executionId": "36b96823-5b49-46f5-a5fd-1de1864c4c60",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788166089241
+      }
+    ],
+    "21. Implement the outcome verifier": [
+      {
+        "executionId": "36b96823-5b49-46f5-a5fd-1de1864c4c60",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788166089278
+      }
+    ],
+    "22. Implement the recovery workflow orchestrator": [
+      {
+        "executionId": "36b96823-5b49-46f5-a5fd-1de1864c4c60",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788166089311
+      }
+    ],
+    "23. Implement recovery, analytics, and simulation endpoints": [
+      {
+        "executionId": "36b96823-5b49-46f5-a5fd-1de1864c4c60",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788166089340
+      }
+    ],
+    "24. Implement the scenario generator and seed command": [
+      {
+        "executionId": "36b96823-5b49-46f5-a5fd-1de1864c4c60",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788166089377
+      }
+    ],
+    "25. Write the end-to-end workflow tests": [
+      {
+        "executionId": "36b96823-5b49-46f5-a5fd-1de1864c4c60",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788166089413
+      }
+    ],
+    "26. Implement the CLI demo": [
+      {
+        "executionId": "36b96823-5b49-46f5-a5fd-1de1864c4c60",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788166089445
+      }
+    ],
+    "27. Write the README and verify the completion criteria": [
+      {
+        "executionId": "36b96823-5b49-46f5-a5fd-1de1864c4c60",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788166089479
+      }
+    ]
+  }
+}
