@@ -694,3 +694,13 @@ export interface ClockResponse {
   advanced_by_minutes: number;
   previous_virtual_clock_time: string | null;
 }
+
+
+/** Configured predictor status and bounded training provenance. */
+export interface IntelligenceModelStatusResponse extends SyntheticNotice {
+  active_predictor: string;
+  mode: 'deterministic_default' | 'deterministic_fallback' | 'local_model' | string;
+  fallback_mode: boolean;
+  feature_schema_version: string;
+  training: IntelligenceModelTraining;
+}

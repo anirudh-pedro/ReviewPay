@@ -6,6 +6,11 @@
  */
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/+$/, '');
+const API_TOKEN = import.meta.env.VITE_API_TOKEN;
+
+function correlationId(): string {
+  return globalThis.crypto?.randomUUID?.() ?? `web-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
 
 /**
  * FastAPI's configurable mount path. Keep this separate from the API host so a
@@ -92,13 +97,18 @@ async function request<T>(path: string, options: RequestOptions<T> = {}): Promis
   const url = `${API_BASE_URL}${path}`;
   const hasBody = options.body !== undefined;
 
+  const headers: Record<string, string> = { Accept: 'application/json', 'X-Request-ID': correlationId() };
+  if (hasBody) headers['Content-Type'] = 'application/json';
+  // A deployment may inject a short-lived token at build time or an operator may
+  // provide one through session storage; no credential is persisted by this app.
+  const token = sessionStorage.getItem('revivepay_api_token') || API_TOKEN;
+  if (token) headers.Authorization = `Bearer ${token}`;
+
   let response: Response;
   try {
     response = await fetch(url, {
       method: options.method ?? 'GET',
-      headers: hasBody
-        ? { Accept: 'application/json', 'Content-Type': 'application/json' }
-        : { Accept: 'application/json' },
+      headers,
       body: hasBody ? JSON.stringify(options.body) : undefined,
       signal: options.signal,
     });
@@ -141,12 +151,16 @@ async function request<T>(path: string, options: RequestOptions<T> = {}): Promis
 
   if (!response.ok) {
     const envelope = isErrorEnvelope(payload) ? payload.error : undefined;
+    const code = typeof envelope?.code === 'string' ? envelope.code : 'UNKNOWN_ERROR';
+    if (response.status === 401 || response.status === 403) {
+      window.dispatchEvent(new CustomEvent('revivepay:authorization-required', { detail: { status: response.status, code } }));
+    }
     throw new ApiError(
       typeof envelope?.message === 'string'
         ? envelope.message
         : `Request to ${path} failed with status ${response.status}.`,
       response.status,
-      typeof envelope?.code === 'string' ? envelope.code : 'UNKNOWN_ERROR',
+      code,
     );
   }
 

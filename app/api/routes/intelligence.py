@@ -221,3 +221,98 @@ def simulate_recovery_intelligence(
         session=session, clock=clock, settings=settings
     ).evaluate(case_id, _overrides(request))
     return _response_read(result)
+
+
+# ---------------------------------------------------------------------------
+# Focused Phase 3 read models
+# ---------------------------------------------------------------------------
+# The aggregate intelligence payload remains the canonical response.  These
+# typed, read-only routes expose focused entry points for dashboard integrations
+# without adding any execution capability or a second decision path.
+
+from app.schemas.intelligence import ModelStatusResponse
+
+
+def _case_intelligence_read(case_id: str, session, clock, settings) -> RecoveryIntelligenceResponse:
+    result = RecoveryIntelligenceService(
+        session=session, clock=clock, settings=settings
+    ).evaluate(case_id)
+    return _response_read(result)
+
+
+@router.get(
+    "/intelligence/model-status",
+    response_model=ModelStatusResponse,
+    summary="Configured predictor status and bounded training provenance",
+)
+def get_model_status(
+    session: SessionDep,
+    clock: ClockDep,
+    settings: SettingsDep,
+) -> ModelStatusResponse:
+    """Return safe model provenance; no artifact contents or credentials are exposed."""
+
+    from app.core.container import get_recovery_predictor
+    from app.ml.features import FEATURE_SCHEMA_VERSION
+    from app.services.recovery_intelligence import BoundedRecoveryProbabilityModel
+
+    predictor = get_recovery_predictor(settings)
+    training = BoundedRecoveryProbabilityModel(session, clock, settings).summary
+    fallback_mode = bool(getattr(predictor, "is_fallback", False))
+    active_predictor = getattr(predictor, "model_version", predictor.__class__.__name__)
+    if settings.recovery_predictor_impl == "deterministic":
+        mode = "deterministic_default"
+    elif fallback_mode:
+        mode = "deterministic_fallback"
+    else:
+        mode = "local_model"
+    return ModelStatusResponse(
+        active_predictor=str(active_predictor),
+        mode=mode,
+        fallback_mode=fallback_mode,
+        feature_schema_version=FEATURE_SCHEMA_VERSION,
+        training=ModelTrainingRead(
+            model_version=training.model_version,
+            training_samples=training.training_samples,
+            synthetic_samples=training.synthetic_samples,
+            verified_outcome_samples=training.verified_outcome_samples,
+            bounded_window=training.bounded_window,
+            fallback_used=training.fallback_used,
+            fallback_reason=training.fallback_reason,
+        ),
+    )
+
+
+@router.get("/cases/{case_id}/prediction", response_model=RecoveryIntelligenceResponse)
+def get_case_prediction(case_id: str, session: SessionDep, clock: ClockDep, settings: SettingsDep):
+    """Return per-candidate prediction evidence for a case (read-only)."""
+
+    return _case_intelligence_read(case_id, session, clock, settings)
+
+
+@router.get("/cases/{case_id}/strategy-evaluation", response_model=RecoveryIntelligenceResponse)
+def get_strategy_evaluation(case_id: str, session: SessionDep, clock: ClockDep, settings: SettingsDep):
+    """Return policy-aware ERV ranking evidence for a case (read-only)."""
+
+    return _case_intelligence_read(case_id, session, clock, settings)
+
+
+@router.get("/cases/{case_id}/ai-diagnosis", response_model=RecoveryIntelligenceResponse)
+def get_ai_diagnosis(case_id: str, session: SessionDep, clock: ClockDep, settings: SettingsDep):
+    """Return structured diagnosis evidence and deterministic fallback provenance."""
+
+    return _case_intelligence_read(case_id, session, clock, settings)
+
+
+@router.get("/cases/{case_id}/historical-insights", response_model=RecoveryIntelligenceResponse)
+def get_historical_insights(case_id: str, session: SessionDep, clock: ClockDep, settings: SettingsDep):
+    """Return bounded historical evidence excluding the evaluated case label."""
+
+    return _case_intelligence_read(case_id, session, clock, settings)
+
+
+@router.get("/cases/{case_id}/decision-explanation", response_model=RecoveryIntelligenceResponse)
+def get_decision_explanation(case_id: str, session: SessionDep, clock: ClockDep, settings: SettingsDep):
+    """Return full model, business-value, policy, and rejection reasoning."""
+
+    return _case_intelligence_read(case_id, session, clock, settings)

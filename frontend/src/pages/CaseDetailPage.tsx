@@ -302,10 +302,23 @@ function ActionHistory({ actions }: { actions: RecoveryActionRead[] }) {
 function WorkflowResult({ result }: { result: WorkflowRunResponse | null }) {
   if (!result) return null;
 
+  const completed = new Set(result.stages);
+  const liveStages = [
+    ['DETECT', true, 'Case entered the existing workflow.'],
+    ['DIAGNOSE', completed.has('diagnosis'), 'Structured failure diagnosis persisted.'],
+    ['PREDICT', completed.has('decision'), 'Configured predictor scored the candidates.'],
+    ['EVALUATE', completed.has('candidates'), 'Candidate actions were valued by ERV.'],
+    ['DECIDE', completed.has('decision'), 'Highest ranked strategy was selected.'],
+    ['POLICY', completed.has('policy'), 'Mandatory policy verdict was recorded.'],
+    ['EXECUTE', completed.has('execution'), 'Executor was invoked only after approval.'],
+    ['VERIFY', completed.has('verification'), 'Persisted payment state was independently checked.'],
+  ] as const;
+
   return (
     <Card className="border-accent/20 bg-accent/[0.035]">
-      <CardHeader><div><div className="flex items-center gap-2"><CheckCircle2 aria-hidden="true" className="size-4 text-accent" /><p className="text-sm font-semibold text-slate-100">Latest manual cycle result</p></div><p className="mt-1 text-xs text-slate-500">This is the live response from the real workflow endpoint.</p></div><StatusBadge tone={caseStateTone(result.final_status)}>{humanize(result.final_status)}</StatusBadge></CardHeader>
-      <div className="grid gap-3 p-5 pt-4 md:grid-cols-4"><EvidenceMetric label="Selected action" value={result.selected_action ? humanize(result.selected_action) : 'None'} /><EvidenceMetric label="Policy" value={result.policy ? humanize(result.policy.outcome) : 'Not recorded'} /><EvidenceMetric label="Recovered" tone={result.outcome?.recovered ? 'text-green-300' : 'text-slate-100'} value={formatMoney(result.recovered_amount)} /><EvidenceMetric label="Stages" value={String(result.stages.length)} /></div>
+      <CardHeader><div><div className="flex items-center gap-2"><CheckCircle2 aria-hidden="true" className="size-4 text-accent" /><p className="text-sm font-semibold text-slate-100">Run AI Recovery — workflow evidence</p></div><p className="mt-1 text-xs text-slate-500">A visual presentation of the real, policy-gated workflow response. No stage is invented or executed by the browser.</p></div><StatusBadge tone={caseStateTone(result.final_status)}>{humanize(result.final_status)}</StatusBadge></CardHeader>
+      <div className="overflow-x-auto px-5 pt-4"><ol aria-label="Run AI Recovery stages" className="flex min-w-max gap-2 pb-1">{liveStages.map(([label, complete, evidence], index) => <li key={label} className="flex items-stretch gap-2"><div className={cx('w-32 rounded-lg border p-3', complete ? 'border-accent/25 bg-accent/[0.055]' : 'border-white/[0.06] bg-ink-900/35')}><p className="font-mono text-[0.62rem] text-slate-600">{String(index + 1).padStart(2, '0')}</p><p className={cx('mt-1 text-xs font-semibold', complete ? 'text-sky-200' : 'text-slate-500')}>{label}</p><p className="mt-2 text-[0.65rem] leading-4 text-slate-500">{complete ? evidence : 'Not reached in this cycle.'}</p></div>{index < liveStages.length - 1 ? <ChevronRight aria-hidden="true" className="mt-8 size-3.5 shrink-0 text-slate-600" /> : null}</li>)}</ol></div>
+      <div className="grid gap-3 p-5 pt-4 md:grid-cols-4"><EvidenceMetric label="Selected action" value={result.selected_action ? humanize(result.selected_action) : 'None'} /><EvidenceMetric label="Policy" value={result.policy ? humanize(result.policy.outcome) : 'Not recorded'} /><EvidenceMetric label="Recovered" tone={result.outcome?.recovered ? 'text-green-300' : 'text-slate-100'} value={formatMoney(result.recovered_amount)} /><EvidenceMetric label="Recorded stages" value={String(result.stages.length)} /></div>
       <p className="px-5 pb-5 text-sm leading-6 text-slate-300">{result.message}</p>
     </Card>
   );
@@ -322,10 +335,10 @@ function CaseDetailContent({ caseId }: { caseId: string }) {
   const data = intelligence.data;
 
   const actionLabel = useMemo(() => {
-    if (!data) return 'Run recovery cycle';
+    if (!data) return 'Run AI Recovery';
     if (data.recoveryCase.is_terminal) return 'Terminal case';
-    if (data.recoveryCase.state === 'SCHEDULED') return 'Run due recovery cycle';
-    return 'Run one recovery cycle';
+    if (data.recoveryCase.state === 'SCHEDULED') return 'Run AI Recovery (due cycle)';
+    return 'Run AI Recovery';
   }, [data]);
 
   async function handleRun() {

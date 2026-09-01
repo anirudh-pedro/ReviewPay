@@ -647,11 +647,18 @@ def test_demo_reset_is_forbidden_outside_development(api_client, api_prefix, set
     production = Settings(
         _env_file=None,
         environment="production",
+        auth_mode="api_key",
+        api_key="production-test-key",
+        execution_mode="enqueue",
         virtual_clock_state_path=settings.virtual_clock_state_path,
     )
     api_client.app.dependency_overrides[settings_dep] = lambda: production
 
-    response = api_client.post(f"{api_prefix}/demo/reset", json={})
+    response = api_client.post(
+        f"{api_prefix}/demo/reset",
+        json={},
+        headers={"Authorization": "Bearer production-test-key"},
+    )
     assert response.status_code == 403
     assert response.json()["error"]["code"] == "DEMO_RESET_FORBIDDEN"
     assert "production" in response.json()["error"]["message"]

@@ -514,3 +514,38 @@ Technology decisions are locked: Python 3, FastAPI with a `create_app()` applica
 - Microservice decomposition, message queues, and distributed schedulers, including APScheduler, Celery, and Redis.
 - Alembic migrations and versioned schema evolution.
 - PostgreSQL as the Phase 0 database. The application must remain swappable to PostgreSQL by configuration alone, but Phase 0 runs on SQLite.
+
+
+## Phase 4 Production Hardening Addendum (Approved)
+
+This addendum supersedes only the Phase 0 restrictions that conflict with production hardening. All deterministic recovery, policy, simulator, virtual-clock, verification, audit, Autopilot, Strategy Lab, Baseline, and Phase 3 intelligence requirements remain mandatory.
+
+### Requirement P4.1: Migration and database portability
+
+1. RevivePay SHALL use Alembic for versioned schema evolution, beginning with a baseline revision that represents the established seven-domain-table schema and additive revisions for Phase 4 operational tables.
+2. SQLite SHALL remain the default local, demo, and test database. The application SHALL support PostgreSQL through `postgresql+psycopg://` with a pinned modern `psycopg` driver.
+3. Production startup SHALL not invoke `create_all()` or destructive schema operations. Migrations SHALL be run explicitly before application startup.
+4. The schema SHALL include durable database-backed job and outbox records with unique idempotency keys and indexes supporting due-job claiming. No Redis, Celery, APScheduler, or external queue is required by this phase.
+
+### Requirement P4.2: Production security and API boundaries
+
+1. Configuration SHALL distinguish development/demo/test from production and fail closed for production-only security settings.
+2. Authentication SHALL be opt-in for local/demo/test operation and required in production. Operational mutations, including recovery runs, Autopilot, clock control, payment simulation/failure, and demo reset, SHALL require an authorized principal when authentication is enabled.
+3. Demo reset SHALL additionally require a dedicated scope and remain unavailable outside explicitly resettable environments.
+4. API responses SHALL preserve the existing error envelope, never expose credentials, database URLs, stack traces, or internal exception details, and return a correlation ID header for every response.
+5. The API SHALL apply configured CORS, baseline security headers, request body limits, and bounded pagination.
+
+### Requirement P4.3: Durable execution and audit safety
+
+1. The existing synchronous `RevenueRecoveryWorkflow` SHALL remain the deterministic direct execution path for tests and demo mode.
+2. Production commands MAY enqueue a durable database-backed recovery or Autopilot job. A worker SHALL claim a job using a lease, preserve its request correlation identifier, and invoke the existing workflow without bypassing the PolicyEngine, simulator, or OutcomeVerifier.
+3. Duplicate submissions with the same idempotency key SHALL not create duplicate active jobs. A recovery action with an existing execution timestamp or verified outcome SHALL not execute twice.
+4. Escalated or policy-blocked cases SHALL never be executed automatically. Executor success SHALL never itself establish recovery; OutcomeVerifier remains authoritative.
+5. Audit events SHALL remain ordered and reconstructable. The database SHALL enforce unique `(case_id, sequence)` values.
+
+### Requirement P4.4: Observability, frontend, and deployment
+
+1. Structured, redacted application logs SHALL carry request, workflow, job, case, payment, action, policy, and execution identifiers where available.
+2. Health and readiness endpoints SHALL distinguish process liveness from database readiness. Business metrics SHALL remain derived from persisted state.
+3. The frontend SHALL use an environment-based API configuration, handle authorization/API failures safely, retain a global error boundary, and split routes where practical without removing Command Center functionality.
+4. The repository SHALL contain production Docker and Compose artifacts, an environment example, and AWS-oriented deployment documentation. No cloud resources are created by this requirement.

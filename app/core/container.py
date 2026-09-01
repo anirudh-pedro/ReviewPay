@@ -47,10 +47,14 @@ def get_clock(settings: Settings | None = None) -> VirtualClock:
 
 def get_diagnosis_engine(settings: Settings | None = None) -> "DiagnosisEngine":
     """Resolve the diagnosis engine (Requirement 7.6)."""
+    from app.services.ai_diagnosis import AIDiagnosisEngine, LocalMockDiagnosisProvider
     from app.services.diagnosis_engine import RuleBasedDiagnosisEngine
 
     resolved = settings or get_settings()
-    registry = {"rule_based": RuleBasedDiagnosisEngine}
+    registry = {
+        "rule_based": RuleBasedDiagnosisEngine,
+        "ai_local": lambda: AIDiagnosisEngine(provider=LocalMockDiagnosisProvider()),
+    }
 
     try:
         factory = registry[resolved.diagnosis_engine_impl]
@@ -64,9 +68,15 @@ def get_diagnosis_engine(settings: Settings | None = None) -> "DiagnosisEngine":
 def get_recovery_predictor(settings: Settings | None = None) -> "RecoveryPredictor":
     """Resolve the recovery predictor (Requirement 9.9)."""
     from app.ml.deterministic_scorer import DeterministicRecoveryScorer
+    from app.ml.local_model_predictor import LocalLogisticRecoveryPredictor
 
     resolved = settings or get_settings()
-    registry = {"deterministic": DeterministicRecoveryScorer}
+    registry = {
+        "deterministic": DeterministicRecoveryScorer,
+        "local_logistic": lambda: LocalLogisticRecoveryPredictor(
+            resolved.local_model_artifact_path
+        ),
+    }
 
     try:
         factory = registry[resolved.recovery_predictor_impl]

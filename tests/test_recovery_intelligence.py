@@ -201,3 +201,32 @@ def test_structured_diagnosis_falls_back_to_the_deterministic_diagnoser(
     assert diagnosis.root_cause == "BANK_TIMEOUT"
     assert diagnosis.recommended_recovery_approach == "RETRY_LATER"
     assert diagnosis.fallback_reason is not None
+
+
+@pytest.mark.parametrize(
+    "suffix",
+    ("prediction", "strategy-evaluation", "ai-diagnosis", "historical-insights", "decision-explanation"),
+)
+def test_focused_intelligence_routes_are_typed_read_only_aliases(
+    api_client, api_prefix, db, seeded, suffix
+):
+    """Focused Phase 3 endpoints expose the same authoritative advisory payload."""
+
+    before = _persistence_counts(db)
+    response = api_client.get(f"{api_prefix}/recovery/cases/case_demo_a/{suffix}")
+
+    assert response.status_code == 200
+    assert response.json()["case_id"] == "case_demo_a"
+    assert response.json()["data_source"] == "synthetic_simulation"
+    assert _persistence_counts(db) == before
+
+
+def test_model_status_exposes_only_safe_predictor_provenance(api_client, api_prefix):
+    response = api_client.get(f"{api_prefix}/recovery/intelligence/model-status")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["mode"] == "deterministic_default"
+    assert body["active_predictor"] == "deterministic-scorer-v1"
+    assert body["feature_schema_version"] == "recovery-pre-action-v1"
+    assert body["data_source"] == "synthetic_simulation"

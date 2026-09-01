@@ -5,6 +5,8 @@ from __future__ import annotations
 from datetime import datetime
 from pathlib import Path
 
+from alembic import command
+from alembic.config import Config
 from sqlalchemy import create_engine, inspect
 
 from app.core.enums import (
@@ -21,6 +23,7 @@ from app.core.enums import (
 from app.db.base import Base
 from app.models import (
     ALL_MODELS,
+    LEGACY_DOMAIN_MODELS,
     AuditEvent,
     PaymentAttempt,
     RecoveryAction,
@@ -44,25 +47,33 @@ EXPECTED_TABLES = {
 # ---------------------------------------------------------------------------
 
 
-def test_exactly_seven_models_are_declared():
-    """Requirement 2.1."""
-    assert len(ALL_MODELS) == 7
+def test_legacy_domain_models_remain_declared():
+    """P4 preserves the original seven recovery-domain models."""
+    assert len(LEGACY_DOMAIN_MODELS) == 7
+    assert len(ALL_MODELS) == 9
 
 
-def test_create_all_produces_exactly_seven_tables(tmp_path):
-    """Requirement 2.11: create_all() builds the schema, no Alembic involved."""
-    engine = create_engine(f"sqlite:///{tmp_path / 'schema.db'}", future=True)
-    Base.metadata.create_all(bind=engine)
-    assert set(inspect(engine).get_table_names()) == EXPECTED_TABLES
+def test_baseline_migration_creates_the_legacy_domain_schema(tmp_path):
+    """P4.1: a fresh SQLite database upgrades through an auditable revision."""
+    root = Path(__file__).resolve().parents[1]
+    database = tmp_path / "schema.db"
+    config = Config(str(root / "alembic.ini"))
+    config.set_main_option("script_location", str(root / "alembic"))
+    config.set_main_option("sqlalchemy.url", f"sqlite:///{database}")
+
+    command.upgrade(config, "head")
+    engine = create_engine(f"sqlite:///{database}", future=True)
+    assert EXPECTED_TABLES <= set(inspect(engine).get_table_names())
     engine.dispose()
 
 
-def test_no_alembic_configuration_exists():
-    """Requirement 2.11: migrations are deliberately out of scope."""
+def test_alembic_configuration_and_fixed_baseline_exist():
+    """P4.1: migrations are an explicit, reviewable production contract."""
     root = Path(__file__).resolve().parents[1]
-    assert not (root / "alembic.ini").exists()
-    assert not (root / "alembic").exists()
-    assert not (root / "migrations").exists()
+    assert (root / "alembic.ini").is_file()
+    assert (root / "alembic" / "env.py").is_file()
+    assert (root / "alembic" / "versions" / "20260829_01_baseline_domain_schema.py").is_file()
+    assert (root / "alembic" / "versions" / "20260829_02_operational_jobs_outbox.py").is_file()
 
 
 def test_declared_indexes_are_created(db_engine):

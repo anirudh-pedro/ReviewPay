@@ -701,7 +701,13 @@ Domain code raises domain errors and never imports `fastapi.HTTPException`, keep
 
 ## Testing Strategy
 
-### Correctness properties
+## Correctness Properties
+
+### Property 1: Prediction uses only pre-action facts
+
+The centralized Phase 3 feature projection excludes the current recovery outcome, recovered amount, action execution state, and terminal case state. Synthetic training and local inference both use that same detection-time-safe feature schema.
+
+**Validates: Requirements 6.1, 9.1.**
 
 These hold for all inputs and are the strongest signals worth asserting:
 
@@ -873,3 +879,68 @@ Every requirement maps to at least one design element, and every design element 
 | Razorpay test mode | `ActionExecutor` Protocol in `app/integrations` | new class + registration |
 | Dashboard | existing HTTP API | frontend only |
 | PostgreSQL | `DATABASE_URL` | configuration only |
+
+
+## Phase 3 Intelligence Layer (additive)
+
+Phase 3 extends the existing deterministic seams; it does not replace the workflow, policy engine, executor, verifier, virtual clock, simulator, audit writer, or recovery persistence model.
+
+### Data flow and safety boundary
+
+```text
+RecoveryContext (persisted pre-action facts)
+  → RecoveryFeatureEngineer
+  → optional LocalLogisticRecoveryPredictor ─┐
+  → DeterministicRecoveryScorer (default/fallback) ─┤→ RecoveryDecisionEngine → ERV
+  → optional AIDiagnosisEngine (validated adapter) ─┘                         → PolicyEngine
+                                                                                ├─ approved only: executor
+                                                                                ├─ blocked: no execution
+                                                                                └─ escalated: human handling
+```
+
+`RecoveryFeatureEngineer` has one stable feature schema and intentionally excludes the current recovery action's state, outcome, recovered amount, and terminal case state. Synthetic labels are generated from `PaymentSimulatorExecutor.predict_outcome()` against a reconstructed detection-time context. Historical learning consumes only verified outcomes in a bounded window and excludes the evaluated case, preventing its eventual outcome from influencing its own prediction.
+
+The local classifier is a compact, pure-Python logistic implementation trained with deterministic fixed-step batch gradient descent. It persists a versioned JSON artifact, not a pickle or third-party model format. `LocalLogisticRecoveryPredictor` satisfies the existing `RecoveryPredictor` protocol and returns the existing `PredictionResult`; when its artifact is absent, invalid, or schema-incompatible, it returns the deterministic scorer output with explicit fallback provenance. The default configuration remains `RECOVERY_PREDICTOR_IMPL=deterministic`.
+
+`AIDiagnosisEngine` satisfies `DiagnosisEngine`. A provider may return a strictly validated Pydantic payload containing root cause, severity, explanation, non-identifying customer context, recommended strategy, and reasoning factors. The adapter rejects malformed, oversized, extra, or contradictory responses and returns `RuleBasedDiagnosisEngine` output instead. Provider recommendations remain information only: they cannot call the executor, change a policy verdict, or modify the stable `Diagnosis.to_dict()` contract. `ai_local` is the zero-cost deterministic mock provider; no API key or network call is needed.
+
+### Read-only intelligence APIs and UI
+
+The aggregate case intelligence response and focused routes expose model/training status, prediction evidence, strategy evaluation, AI diagnosis provenance, bounded historical evidence, and complete decision explanation. All carry typed Pydantic schemas and `synthetic_simulation` provenance. The Strategy Lab and Case Intelligence screens consume typed API functions/runtime guards; no ERV calculation, model score, ranking, policy decision, or execution decision is reimplemented in the frontend.
+
+The **Run AI Recovery** UI maps the existing `WorkflowRun.stages` result to `DETECT → DIAGNOSE → PREDICT → EVALUATE → DECIDE → POLICY → EXECUTE → VERIFY`. It is a visualization of backend evidence, not a new execution path. A high-value case visibly reaches policy escalation before execution; a recoverable case shows the scheduled/executed/verified simulator path.
+
+### Evaluation methodology
+
+`python scripts/evaluate_intelligence.py` orders seeded synthetic cases deterministically, uses the first half only to train the local model, and evaluates baseline `RETRY_NOW`, deterministic RevivePay, and local-ML RevivePay on the identical held-out half. Every arm uses the unchanged `RecoveryDecisionEngine`, `ExpectedRecoveryCalculator`, `PolicyEngine`, and `PaymentSimulatorExecutor.predict_outcome()` projection. The command reports recovery rate, projected recovered amount, ERV, action distribution, blocked/escalated/stopped counts, and arithmetic deltas versus baseline. It reports observed synthetic results without claiming an improvement.
+
+### Demo and non-transaction notice
+
+1. Seed using `python scripts/seed.py --reset`.
+2. Train locally with `python scripts/train_recovery_model.py` if testing the optional artifact.
+3. Use Strategy Lab and Case Intelligence to inspect typed, synthetic evidence.
+4. Run scenario A through its scheduled retry and virtual-clock advance; run scenario C to demonstrate policy escalation.
+5. Run `python scripts/evaluate_intelligence.py` to produce the held-out comparison.
+
+The simulator uses synthetic money and data only. It does not make real payment transactions, call a real gateway, store payment credentials, or communicate with a paid/model provider.
+
+
+## Phase 4 Production Hardening Architecture (Approved Addendum)
+
+Phase 4 preserves the modular monolith and its recovery pipeline. It adds outer operational boundaries; it does not move decision, policy, execution, simulator, or verification logic out of `RevenueRecoveryWorkflow`.
+
+```text
+HTTP command -> auth/scope + request correlation -> transaction
+             -> durable job + outbox (production mode) -> database worker lease
+             -> existing RevenueRecoveryWorkflow -> PolicyEngine -> simulator -> OutcomeVerifier
+```
+
+**Database and migrations.** Alembic is the schema authority in deployed environments. The first revision reflects the existing seven domain tables; later additive revisions introduce `background_jobs` and `outbox_events`. SQLite remains the default for deterministic local/test/demo use. PostgreSQL uses the maintained `psycopg` v3 dialect. `create_all()` remains a compatibility helper only and is never a production schema-management mechanism.
+
+**Execution boundary.** Direct workflow execution remains available to deterministic demos and unit tests. Production uses a database-backed job record with a deduplication key, attempt count, lease owner/expiry, request/workflow correlation, and due time. Worker claiming is atomic on PostgreSQL (`FOR UPDATE SKIP LOCKED`) and deliberately single-worker-safe on SQLite. No Redis, Celery, or scheduler is introduced. Jobs invoke the existing workflow; they cannot skip policy evaluation or verification.
+
+**Security boundary.** `AUTH_MODE=disabled` is intended only for local/demo/test. `AUTH_MODE=api_key` is required by production settings and validates Bearer values through constant-time comparison, producing a principal with scopes. Health remains public. Operational mutating endpoints require `operations:write`; reset additionally requires `demo:reset` and a resettable environment. Secrets are neither logged nor returned.
+
+**Observability boundary.** Middleware accepts a validated `X-Request-ID` or generates one, returns it on every response, and places it in structured log context. Workflow/job logs add their identifiers without coupling domain code to FastAPI. Logs are JSON and redact sensitive key/value content. Readiness performs a short database probe; liveness does not expose configuration or credentials.
+
+**Safety invariants.** Policy-blocked and escalated cases never reach the executor. A simulator execution result is not a recovery result: only `OutcomeVerifier` can establish recovered status. The recovery-budget rule is unchanged. Audit ordering is additionally protected with a database uniqueness constraint. All payment execution remains synthetic.

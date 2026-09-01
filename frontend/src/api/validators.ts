@@ -742,3 +742,18 @@ export function isDemoResetResponse(value: unknown): value is DemoResetResponse 
     isString(value.message)
   );
 }
+
+
+export function isIntelligenceModelStatusResponse(
+  value: unknown,
+): value is import('@/types/api').IntelligenceModelStatusResponse {
+  return (
+    isRecord(value) &&
+    isSyntheticNotice(value) &&
+    isString(value.active_predictor) &&
+    isString(value.mode) &&
+    isBoolean(value.fallback_mode) &&
+    isString(value.feature_schema_version) &&
+    isIntelligenceModelTraining(value.training)
+  );
+}

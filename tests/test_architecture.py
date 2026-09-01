@@ -1,13 +1,7 @@
-"""Structural guards for the architectural invariants.
+"""Structural guards for durable recovery boundaries.
 
-These tests do not check behaviour. They check that the boundaries the design
-depends on have not eroded, which is what keeps Phase 1 additive:
-
-- domain layers stay free of HTTP concerns (Requirement 27.8)
-- the expected-recovery-value formula exists in exactly one module (10.4)
-- only the audit service writes audit rows (19.6)
-- per-failure-reason branching lives only in the candidate generator (8.9)
-- no machine-learning or scheduler dependency is present (1.10, 18.2)
+Phase 4 permits Alembic and modern psycopg PostgreSQL support, while continuing
+to prohibit external queues/schedulers and HTTP leakage into domain layers.
 """
 
 from __future__ import annotations
@@ -61,8 +55,8 @@ def test_domain_layers_do_not_import_the_api_package():
     assert offenders == [], f"domain modules referencing app.api: {offenders}"
 
 
-def test_no_machine_learning_or_scheduler_dependency_is_declared():
-    """Requirement 1.10, 18.2: Phase 0 stays ML-free and scheduler-free."""
+def test_only_approved_production_dependencies_are_declared():
+    """P4 allows Alembic/psycopg, but not ML, external queues, or schedulers."""
     manifest = (PROJECT_ROOT / "requirements.txt").read_text(encoding="utf-8")
     active = [
         line.strip().lower()
@@ -82,7 +76,6 @@ def test_no_machine_learning_or_scheduler_dependency_is_declared():
         "openai",
         "anthropic",
         "langchain",
-        "alembic",
         "psycopg2",
     )
     for package in forbidden:

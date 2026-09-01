@@ -17,6 +17,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
+from app.api.auth import OperationsPrincipalDep
 from app.api.deps import ClockDep, SessionDep, SettingsDep
 from app.models import Payment, RecoveryCase
 from app.schemas.common import Money
@@ -254,6 +255,7 @@ def autopilot(
     session: SessionDep,
     clock: ClockDep,
     settings: SettingsDep,
+    _: OperationsPrincipalDep,
 ) -> AutopilotResponse:
     """Drive every pending case to a terminal state.
 

@@ -40,7 +40,7 @@ from app.core.enums import (
     WorkflowStage,
 )
 from app.core.errors import CaseAlreadyTerminal, RecordNotFound, RevivePayError
-from app.core.logging import get_logger
+from app.core.logging import get_logger, log_context
 from app.db.base import new_id
 from app.integrations.action_executor import ExecutionResult
 from app.models import Payment, RecoveryAction, RecoveryCase, RecoveryOutcome
@@ -190,28 +190,31 @@ class RevenueRecoveryWorkflow:
         run = _RunState(workflow_id=new_id("wf"), started_at=self._clock.now())
         entry_state = case.state
 
-        logger.info(
-            "[%s] run start | case=%s | state=%s | simulation_time=%s",
-            run.workflow_id,
-            case.case_id,
-            entry_state.value,
-            run.started_at.isoformat(),
-        )
+        # The context reaches every structured log produced by the downstream
+        # workflow stages without coupling domain services to FastAPI.
+        with log_context(workflow_id=run.workflow_id):
+            logger.info(
+                "[%s] run start | case=%s | state=%s | simulation_time=%s",
+                run.workflow_id,
+                case.case_id,
+                entry_state.value,
+                run.started_at.isoformat(),
+            )
 
-        try:
-            if entry_state is CaseState.SCHEDULED:
-                result = self._resume_scheduled(case, run)
-            else:
-                result = self._full_cycle(case, run)
-        except (CaseAlreadyTerminal, CaseNotRunnable, RecordNotFound):
-            raise
-        except Exception as error:  # noqa: BLE001 - deliberate boundary
-            self._handle_stage_error(case, run, entry_state, error)
-            raise
+            try:
+                if entry_state is CaseState.SCHEDULED:
+                    result = self._resume_scheduled(case, run)
+                else:
+                    result = self._full_cycle(case, run)
+            except (CaseAlreadyTerminal, CaseNotRunnable, RecordNotFound):
+                raise
+            except Exception as error:  # noqa: BLE001 - deliberate boundary
+                self._handle_stage_error(case, run, entry_state, error)
+                raise
 
-        self._session.commit()
-        logger.info("%s", result.to_log_line())
-        return result
+            self._session.commit()
+            logger.info("%s", result.to_log_line())
+            return result
 
     # -- scheduled resumption ---------------------------------------------
 

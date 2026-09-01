@@ -19,6 +19,7 @@ import {
   isRecoveryCaseDetail,
   isRecoveryCaseSummary,
   isRecoveryIntelligenceResponse,
+  isIntelligenceModelStatusResponse,
   isScenariosResponse,
   isStrategyLabResponse,
   isWorkflowRunResponse,
@@ -37,6 +38,7 @@ import type {
   RecoveryCaseDetail,
   RecoveryCaseSummary,
   RecoveryIntelligenceResponse,
+  IntelligenceModelStatusResponse,
   ScenarioOverrides,
   ScenariosResponse,
   StrategyLabResponse,
@@ -239,3 +241,12 @@ export function resetDemo(input: DemoResetRequest | number = 12): Promise<DemoRe
     isDemoResetResponse,
   );
 }
+
+
+/** Read-only status of the configured predictor and bounded local evidence. */
+export const getIntelligenceModelStatus = (signal?: AbortSignal) =>
+  apiGet<IntelligenceModelStatusResponse>(
+    `${PREFIX}/recovery/intelligence/model-status`,
+    signal,
+    isIntelligenceModelStatusResponse,
+  );

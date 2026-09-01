@@ -12,6 +12,7 @@ from typing import Annotated
 from fastapi import APIRouter, Query
 from sqlalchemy import func, select
 
+from app.api.auth import OperationsPrincipalDep
 from app.api.deps import ClockDep, PaginationDep, SessionDep, SettingsDep
 from app.core.enums import CaseState
 from app.core.errors import RecordNotFound
@@ -160,6 +161,7 @@ def run_case(
     session: SessionDep,
     clock: ClockDep,
     settings: SettingsDep,
+    _: OperationsPrincipalDep,
 ) -> WorkflowRunResponse:
     """Perform exactly one decide, gate, execute, verify cycle.
 

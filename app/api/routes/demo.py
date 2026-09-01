@@ -14,6 +14,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
+from app.api.auth import DemoResetPrincipalDep
 from app.api.deps import ClockDep, SessionDep, SettingsDep
 from app.api.routes.command_center import scenario_reads
 from app.core.errors import RevivePayError
@@ -53,6 +54,7 @@ def reset_demo(
     session: SessionDep,
     clock: ClockDep,
     settings: SettingsDep,
+    _: DemoResetPrincipalDep,
 ) -> DemoResetResponse:
     """Restore the deterministic starting state.
 

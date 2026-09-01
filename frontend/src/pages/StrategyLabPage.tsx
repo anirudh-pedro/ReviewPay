@@ -16,7 +16,7 @@ import {
   Sparkles,
   Target,
 } from 'lucide-react';
-import { getBaselineComparison, getScenarios, simulateRecoveryIntelligence, simulateStrategies } from '@/api';
+import { getBaselineComparison, getIntelligenceModelStatus, getScenarios, simulateRecoveryIntelligence, simulateStrategies } from '@/api';
 import type { ActionType, ScenarioOverrides, StrategyLabResponse, StrategyOption } from '@/types/api';
 import { RecoveryIntelligencePanel } from '@/components/RecoveryIntelligencePanel';
 import {
@@ -212,6 +212,26 @@ function ComparisonArm({
   );
 }
 
+function ModelPerformanceStatus() {
+  const { dataVersion } = useDemoData();
+  const status = useApi(getIntelligenceModelStatus, [dataVersion]);
+
+  if (status.loading && !status.data) {
+    return <Card className="p-5"><Skeleton className="h-4 w-44" /><Skeleton className="mt-4 h-20 w-full" /></Card>;
+  }
+  if (!status.data) return null;
+
+  const model = status.data;
+  return (
+    <Card className="overflow-hidden border-accent/20 bg-accent/[0.025]">
+      <CardHeader><div><div className="flex items-center gap-2"><Sparkles aria-hidden="true" className="size-4 text-accent" /><p className="text-sm font-semibold text-slate-100">Model-performance context</p></div><p className="mt-1 text-xs leading-5 text-slate-500">Baseline vs deterministic RevivePay is shown below; local ML remains optional, explainable, and policy-gated.</p></div><StatusBadge tone={model.fallback_mode ? 'warning' : 'info'}>{model.fallback_mode ? 'Fallback mode' : humanize(model.mode)}</StatusBadge></CardHeader>
+      <div className="grid gap-3 p-5 pt-4 sm:grid-cols-2 xl:grid-cols-4"><Metric label="Active predictor" value={model.active_predictor} /><Metric label="Feature schema" value={model.feature_schema_version} /><Metric label="Bounded samples" value={String(model.training.training_samples)} /><Metric label="Verified outcomes" tone="text-green-300" value={String(model.training.verified_outcome_samples)} /></div>
+      <p className="px-5 pb-5 text-xs leading-5 text-slate-500">Synthetic simulation only. The model may recommend a strategy, but the unchanged Policy Engine remains the final approval authority.</p>
+      {status.error ? <p className="border-t border-white/[0.055] px-5 py-3 text-xs text-amber-200">Model status refresh failed; the last valid status remains visible.</p> : null}
+    </Card>
+  );
+}
+
 function BaselineComparison() {
   const { dataVersion } = useDemoData();
   const comparison = useApi(getBaselineComparison, [dataVersion]);
@@ -306,6 +326,7 @@ export function StrategyLabPage() {
       {intelligenceSimulation.error ? <ErrorState compact error={intelligenceSimulation.error} onRetry={() => void handleEvaluate()} title="Recovery Intelligence simulation could not complete" /> : null}
       {simulation.data ? <StrategyResult result={simulation.data} /> : <Card><EmptyState compact description="Choose a deterministic case and run a read-only backend evaluation to compare all eligible recovery options." icon={Beaker} title="No strategy evaluation yet" /></Card>}
       {intelligenceSimulation.data ? <RecoveryIntelligencePanel intelligence={intelligenceSimulation.data} /> : null}
+      <ModelPerformanceStatus />
       <BaselineComparison />
     </div>
   );

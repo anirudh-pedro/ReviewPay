@@ -14,6 +14,7 @@ from app.api.routes import (
     demo,
     health,
     intelligence,
+    jobs,
     payments,
     recovery,
     simulate,
@@ -31,6 +32,7 @@ root_router.include_router(health.router)
 api_router = APIRouter()
 api_router.include_router(command_center.router)
 api_router.include_router(intelligence.router)
+api_router.include_router(jobs.router)
 api_router.include_router(payments.router)
 api_router.include_router(recovery.router)
 api_router.include_router(simulate.router)

@@ -1,17 +1,12 @@
-"""Application factory.
-
-``create_app()`` is the single place the HTTP surface is assembled: logging,
-middleware, error handling, and routes (Requirement 1.1). Nothing in
-``app/services``, ``app/ml``, ``app/workflows``, or ``app/integrations`` imports
-this module, which is what keeps the domain runnable from a script or a test
-without an HTTP server.
-"""
+"""FastAPI application factory and cross-cutting production safeguards."""
 
 from __future__ import annotations
 
-import time
-from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+import re
+import time
+from typing import AsyncIterator
+from uuid import uuid4
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -20,130 +15,103 @@ from fastapi.responses import JSONResponse
 
 from app.core.config import Settings, get_settings
 from app.core.errors import RevivePayError
-from app.core.logging import configure_logging, get_logger
+from app.core.logging import configure_logging, get_logger, log_context
 
 logger = get_logger("api")
-
 RESPONSE_TIME_HEADER = "X-Response-Time-ms"
+REQUEST_ID_HEADER = "X-Request-ID"
+_REQUEST_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
 
 
 def _build_lifespan(settings: Settings):
-    """Log the operating parameters a demo operator needs to see on startup."""
-
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         from app.core.container import get_clock
-
-        logger.info(
-            "%s v%s ready | env=%s | prefix=%s | simulation_time=%s",
-            settings.app_name,
-            settings.version,
-            settings.environment,
-            settings.api_prefix,
-            get_clock(settings).now().isoformat(),
-        )
-        logger.info(
-            "All payment behaviour is simulated. No real money moves in this application."
-        )
+        logger.info("service ready | env=%s | prefix=%s | simulation_time=%s", settings.environment, settings.api_prefix, get_clock(settings).now().isoformat())
+        logger.info("payment execution is synthetic only; no real money moves")
         yield
-
     return lifespan
 
 
 def _envelope(code: str, message: str) -> dict:
-    """Build the standard error body (Requirement 1.8)."""
     return {"error": {"code": code, "message": message}}
 
 
 def _describe_validation_error(exc: RequestValidationError) -> str:
-    """Name the offending field, so a 422 is actionable (Requirement 3.6)."""
     parts: list[str] = []
     for error in exc.errors():
         location = [str(item) for item in error.get("loc", []) if item != "body"]
-        field = ".".join(location) or "request"
-        parts.append(f"{field}: {error.get('msg', 'invalid value')}")
+        parts.append(f"{'.'.join(location) or 'request'}: {error.get('msg', 'invalid value')}")
     return "; ".join(parts) or "Request validation failed."
 
 
+def _request_id(request: Request) -> str:
+    supplied = request.headers.get(REQUEST_ID_HEADER, "")
+    return supplied if _REQUEST_ID_RE.fullmatch(supplied) else uuid4().hex
+
+
+def _apply_security_headers(response: JSONResponse | object, *, production: bool) -> None:
+    # Response is deliberately duck-typed to include Starlette streaming responses.
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "no-referrer")
+    response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+    response.headers.setdefault("Cross-Origin-Opener-Policy", "same-origin")
+    if production:
+        response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+
+
 def create_app() -> FastAPI:
-    """Build and return the configured FastAPI application."""
     settings = get_settings()
-
-    # Logging is configured before routes are registered so that import-time and
-    # startup messages are formatted consistently (Requirement 1.6).
     configure_logging(settings.log_level)
-
-    app = FastAPI(
-        title=settings.app_name,
-        description=settings.app_description,
-        version=settings.version,
-        docs_url="/docs",
-        redoc_url="/redoc",
-        openapi_url="/openapi.json",
-        lifespan=_build_lifespan(settings),
-    )
+    app = FastAPI(title=settings.app_name, description=settings.app_description, version=settings.version, docs_url="/docs", redoc_url="/redoc", openapi_url="/openapi.json", lifespan=_build_lifespan(settings))
 
     if settings.cors_origins:
         app.add_middleware(
             CORSMiddleware,
             allow_origins=settings.cors_origins,
-            allow_credentials=True,
-            allow_methods=["*"],
-            allow_headers=["*"],
+            allow_credentials="*" not in settings.cors_origins,
+            allow_methods=["GET", "POST", "OPTIONS"],
+            allow_headers=["Accept", "Authorization", "Content-Type", REQUEST_ID_HEADER, "Idempotency-Key"],
+            expose_headers=[REQUEST_ID_HEADER, RESPONSE_TIME_HEADER],
+            max_age=600,
         )
 
     @app.middleware("http")
-    async def add_response_time_header(request: Request, call_next):
-        """Report elapsed request duration in milliseconds (Requirement 1.7).
-
-        Uses ``perf_counter`` deliberately: this measures real wall-clock latency
-        for debugging and is unrelated to the simulation clock.
-        """
+    async def protect_and_observe_request(request: Request, call_next):
+        request_id = _request_id(request)
+        request.state.request_id = request_id
         started = time.perf_counter()
-        response = await call_next(request)
-        elapsed_ms = (time.perf_counter() - started) * 1000.0
-        response.headers[RESPONSE_TIME_HEADER] = f"{elapsed_ms:.2f}"
-        logger.debug(
-            "%s %s -> %s in %.2fms",
-            request.method,
-            request.url.path,
-            response.status_code,
-            elapsed_ms,
-        )
-        return response
-
-    # --- Error handling -----------------------------------------------------
+        with log_context(request_id=request_id):
+            declared_size = request.headers.get("content-length")
+            if declared_size and declared_size.isdigit() and int(declared_size) > settings.max_request_body_bytes:
+                response = JSONResponse(status_code=413, content=_envelope("PAYLOAD_TOO_LARGE", "Request body exceeds the configured limit."))
+            else:
+                response = await call_next(request)
+            elapsed_ms = (time.perf_counter() - started) * 1000.0
+            response.headers[REQUEST_ID_HEADER] = request_id
+            response.headers[RESPONSE_TIME_HEADER] = f"{elapsed_ms:.2f}"
+            _apply_security_headers(response, production=settings.is_production)
+            logger.info("request complete | method=%s path=%s status=%s duration_ms=%.2f", request.method, request.url.path, response.status_code, elapsed_ms)
+            return response
 
     @app.exception_handler(RevivePayError)
     async def handle_domain_error(_: Request, exc: RevivePayError) -> JSONResponse:
-        logger.info("domain error %s: %s", exc.code, exc.message)
-        return JSONResponse(
-            status_code=exc.http_status,
-            content=_envelope(exc.code, exc.message),
-        )
+        logger.info("domain error | code=%s", exc.code)
+        return JSONResponse(status_code=exc.http_status, content=_envelope(exc.code, exc.message), headers=exc.headers)
 
     @app.exception_handler(RequestValidationError)
     async def handle_validation_error(_: Request, exc: RequestValidationError) -> JSONResponse:
-        return JSONResponse(
-            status_code=422,
-            content=_envelope("VALIDATION_ERROR", _describe_validation_error(exc)),
-        )
+        return JSONResponse(status_code=422, content=_envelope("VALIDATION_ERROR", _describe_validation_error(exc)))
 
     @app.exception_handler(Exception)
     async def handle_unexpected_error(request: Request, exc: Exception) -> JSONResponse:
-        logger.exception("unhandled error on %s %s", request.method, request.url.path)
-        return JSONResponse(
-            status_code=500,
-            content=_envelope("INTERNAL_ERROR", "An unexpected internal error occurred."),
-        )
+        logger.error("unhandled error | method=%s path=%s type=%s", request.method, request.url.path, type(exc).__name__)
+        return JSONResponse(status_code=500, content=_envelope("INTERNAL_ERROR", "An unexpected internal error occurred."))
 
-    # --- Routes -------------------------------------------------------------
-    # Imported here so that a module-level import cycle is impossible.
     from app.api.router import api_router, root_router
-
     app.include_router(root_router)
     app.include_router(api_router, prefix=settings.api_prefix)
-
     return app
 
 

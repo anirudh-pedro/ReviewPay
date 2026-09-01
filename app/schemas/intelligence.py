@@ -152,3 +152,16 @@ __all__ = [
     "ModelTrainingRead",
     "RecoveryIntelligenceResponse",
 ]
+
+
+class ModelStatusResponse(SyntheticNotice):
+    """Status of the configured local prediction path without exposing credentials."""
+
+    active_predictor: str
+    mode: str
+    fallback_mode: bool
+    feature_schema_version: str
+    training: ModelTrainingRead
+
+
+__all__.append("ModelStatusResponse")

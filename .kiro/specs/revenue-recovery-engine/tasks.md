@@ -198,3 +198,22 @@ Tasks are ordered so that every task depends only on tasks above it. Each carrie
   - Walk the eighteen Phase 0 completion criteria end to end and record the result of each
   - Acceptance: a clean clone followed only by the documented commands reaches a passing `pytest` run and a successful `scripts/demo.py`; the README states plainly that all behaviour is simulated and no figure represents a real payment; all eighteen completion criteria are demonstrated, not merely asserted
   - _Requirements: 26.1, 26.2, 26.3, 28.1, 28.2, 28.3, 28.4, 28.5, 28.6, 28.7, 28.8, 28.9, 28.10, 28.11, 28.12, 28.13, 28.14, 28.15, 28.16, 28.17, 28.18_
+
+
+## Phase 3 intelligence delivery (completed additively)
+
+- [x] Add centralized, inspectable pre-action feature engineering and reproducible simulator-derived training examples.
+- [x] Add a pure-Python local logistic artifact/training command behind `RecoveryPredictor`, with deterministic fallback.
+- [x] Add validated local/mock AI diagnosis behind `DiagnosisEngine`, with deterministic fallback.
+- [x] Add bounded verified-outcome insights that exclude the evaluated case and do not retrain online.
+- [x] Extend read-only Intelligence APIs and Command Center panels, including the policy-gated Run AI Recovery stage presentation.
+- [x] Add deterministic same-held-out-batch baseline/deterministic/local-ML evaluation, safety tests, and documentation.
+
+
+## Phase 4 production hardening delivery (approved)
+
+- [~] Replace Phase 0 no-Alembic/no-PostgreSQL/no-worker restrictions with P4 migration, SQLite/PostgreSQL, DB-job/outbox, and auth contracts; preserve no Redis/Celery/APScheduler restrictions.
+- [~] Add Alembic baseline and additive operational migration; test fresh upgrades and SQLite compatibility.
+- [~] Add production settings, request correlation, structured secret-redacted logging, CORS/security headers, safe errors, limits, liveness/readiness, and scoped optional authentication.
+- [~] Add idempotent action execution and a durable database-backed job/outbox worker seam while retaining synchronous deterministic demo execution.
+- [~] Add focused hardening tests, Docker/Compose artifacts, environment/deployment guidance, and frontend production UX/code splitting.

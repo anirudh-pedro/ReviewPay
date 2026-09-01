@@ -1,9 +1,4 @@
-"""FastAPI dependencies.
-
-Route handlers receive fully constructed collaborators from here, which keeps the
-handlers themselves limited to validation, delegation, and serialization
-(Requirement 1.9).
-"""
+"""FastAPI dependency composition and bounded request helpers."""
 
 from __future__ import annotations
 
@@ -32,12 +27,12 @@ ClockDep = Annotated[VirtualClock, Depends(clock_dep)]
 
 
 class Pagination:
-    """Shared list pagination parameters."""
+    """Shared, intentionally bounded list pagination parameters."""
 
     def __init__(
         self,
-        limit: Annotated[int, Query(ge=1, le=200, description="Maximum records to return.")] = 50,
-        offset: Annotated[int, Query(ge=0, description="Records to skip.")] = 0,
+        limit: Annotated[int, Query(ge=1, le=100, description="Maximum records to return (hard limit: 100).")] = 50,
+        offset: Annotated[int, Query(ge=0, le=10_000, description="Records to skip (hard limit: 10,000).")] = 0,
     ) -> None:
         self.limit = limit
         self.offset = offset

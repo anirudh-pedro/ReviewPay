@@ -1,15 +1,14 @@
-# RevivePay Phase 0 — backend dependencies
-# Python 3.11+. Compatible-release bounds; lock exact versions in CI if desired.
-#
-# Phase 0 is deliberately ML-free and scheduler-free. No scikit-learn, numpy,
-# joblib, APScheduler, Celery, Redis, or LLM SDK belongs in this file.
-# See .kiro/specs/revenue-recovery-engine/requirements.md Requirement 1.10.
+# RevivePay Phase 4 — pinned production dependencies
+# No ML/LLM, Redis, Celery, APScheduler, or real payment-provider packages.
 
-fastapi>=0.115,<1.0
-uvicorn[standard]>=0.30,<1.0
-pydantic>=2.8,<3.0
-pydantic-settings>=2.4,<3.0
-SQLAlchemy>=2.0,<2.1
+fastapi==0.141.1
+uvicorn[standard]==0.52.4
+pydantic==2.13.5
+pydantic-settings==2.15.0
+SQLAlchemy==2.0.52
+alembic==1.14.1
+# Modern PostgreSQL v3 driver; SQLite remains the default local/demo/test backend.
+psycopg[binary]==3.2.6
 
-# --- Testing ---
-pytest>=8.0,<9.0
+# Testing
+pytest==8.4.2
