@@ -7,6 +7,7 @@ const CasesPage = lazy(() => import('@/pages/CasesPage').then((module) => ({ def
 const CaseDetailPage = lazy(() => import('@/pages/CaseDetailPage').then((module) => ({ default: module.CaseDetailPage })));
 const AutopilotPage = lazy(() => import('@/pages/AutopilotPage').then((module) => ({ default: module.AutopilotPage })));
 const StrategyLabPage = lazy(() => import('@/pages/StrategyLabPage').then((module) => ({ default: module.StrategyLabPage })));
+const LiveGatewayDemoPage = lazy(() => import('@/pages/LiveGatewayDemoPage').then((module) => ({ default: module.LiveGatewayDemoPage })));
 
 function RouteLoading() {
   return <main className="grid min-h-48 place-items-center p-6" aria-live="polite">Loading Command Center view…</main>;
@@ -14,7 +15,7 @@ function RouteLoading() {
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Suspense fallback={<RouteLoading />}>
         <Routes>
           <Route element={<AppShell />}>
@@ -24,6 +25,7 @@ export default function App() {
             <Route path="cases/:caseId" element={<CaseDetailPage />} />
             <Route path="autopilot" element={<AutopilotPage />} />
             <Route path="strategy-lab" element={<StrategyLabPage />} />
+            <Route path="live-gateway-demo" element={<LiveGatewayDemoPage />} />
             <Route path="*" element={<Navigate replace to="/command-center" />} />
           </Route>
         </Routes>

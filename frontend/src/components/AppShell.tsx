@@ -4,6 +4,7 @@ import {
   Bot,
   ChevronRight,
   Clock3,
+  CreditCard,
   LayoutDashboard,
   Menu,
   RotateCcw,
@@ -37,6 +38,7 @@ const navigation: NavigationItem[] = [
   { label: 'Cases', detail: 'Recovery queue', to: '/cases', icon: Activity },
   { label: 'Autopilot', detail: 'Batch operations', to: '/autopilot', icon: Bot },
   { label: 'Strategy Lab', detail: 'What-if analysis', to: '/strategy-lab', icon: Beaker },
+  { label: 'Live Gateway Demo', detail: 'Razorpay Sandbox', to: '/live-gateway-demo', icon: CreditCard },
 ];
 
 const pageDetails: Record<string, { title: string; description: string }> = {
@@ -47,6 +49,7 @@ const pageDetails: Record<string, { title: string; description: string }> = {
   '/cases': { title: 'Cases', description: 'Recovery case operations.' },
   '/autopilot': { title: 'Autopilot', description: 'Batch recovery operations.' },
   '/strategy-lab': { title: 'Strategy Lab', description: 'Compare server-evaluated strategies.' },
+  '/live-gateway-demo': { title: 'Live Gateway Demo', description: 'Isolated Razorpay Sandbox Checkout.' },
 };
 
 function BrandMark() {

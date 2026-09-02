@@ -3,11 +3,11 @@
 Resets the synthetic dataset and the virtual clock so a demonstration can be run
 repeatedly and land on identical numbers every time.
 
-**This endpoint is destructive and is gated on environment.** It drops and recreates
-every table, so it refuses to run unless ``ENVIRONMENT`` names a development or demo
-environment. That guard is deliberate: a reset endpoint reachable in production
-would be a way to erase an audit trail, and the audit trail is the thing this system
-asks to be trusted on.
+**This endpoint is destructive and is gated on the environment profile.** It drops
+and recreates every table, so it refuses to run unless the resolved profile is
+``local``, ``demo``, or ``test``. That guard is deliberate: a reset endpoint
+reachable in staging or production would be a way to erase an audit trail, and the
+audit trail is the thing this system asks to be trusted on.
 """
 
 from __future__ import annotations
@@ -17,6 +17,7 @@ from fastapi import APIRouter
 from app.api.auth import DemoResetPrincipalDep
 from app.api.deps import ClockDep, SessionDep, SettingsDep
 from app.api.routes.command_center import scenario_reads
+from app.core.config import ENVIRONMENT_PROFILE_ALIASES, RESETTABLE_PROFILES
 from app.core.errors import RevivePayError
 from app.core.logging import get_logger
 from app.schemas.product import DemoResetRequest, DemoResetResponse
@@ -26,12 +27,14 @@ logger = get_logger("demo")
 
 router = APIRouter(prefix="/demo", tags=["demo"])
 
-#: Environments in which destructive demo control is permitted.
-RESETTABLE_ENVIRONMENTS = frozenset({"development", "demo", "local", "test"})
+#: ``ENVIRONMENT`` labels that resolve to a profile permitting destructive reset.
+RESETTABLE_ENVIRONMENTS = frozenset(
+    label for label, profile in ENVIRONMENT_PROFILE_ALIASES.items() if profile in RESETTABLE_PROFILES
+)
 
 
 class DemoResetForbidden(RevivePayError):
-    """Reset was attempted outside a development or demo environment."""
+    """Reset was attempted outside an explicitly resettable environment profile."""
 
     code = "DEMO_RESET_FORBIDDEN"
     http_status = 403
@@ -39,7 +42,7 @@ class DemoResetForbidden(RevivePayError):
     def __init__(self, environment: str) -> None:
         super().__init__(
             f"Demo reset is not permitted while ENVIRONMENT is '{environment}'. "
-            f"Permitted environments: {', '.join(sorted(RESETTABLE_ENVIRONMENTS))}."
+            f"Permitted profiles: {', '.join(sorted(RESETTABLE_PROFILES))}."
         )
         self.environment = environment
 
@@ -61,8 +64,7 @@ def reset_demo(
     Reseeding with the same simulation seed reproduces byte-identical rows, so the
     demo tells the same story on the tenth run as on the first.
     """
-    environment = (settings.environment or "").strip().lower()
-    if environment not in RESETTABLE_ENVIRONMENTS:
+    if not settings.profile_policy.allows_destructive_reset:
         raise DemoResetForbidden(settings.environment)
 
     from app.db.base import Base
@@ -74,10 +76,11 @@ def reset_demo(
     # one database while the request kept reading another.
     bind = session.get_bind()
 
+    # Log the profile and dialect, not the connection string.
     logger.warning(
-        "demo reset requested | environment=%s | rebuilding schema on %s",
-        environment,
-        bind.url if hasattr(bind, "url") else bind,
+        "demo reset requested | profile=%s | rebuilding schema on dialect=%s",
+        settings.environment_profile,
+        getattr(getattr(bind, "dialect", None), "name", "unknown"),
     )
 
     # Release the session's view before the schema is rebuilt underneath it.

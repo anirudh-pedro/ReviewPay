@@ -23,6 +23,8 @@ import type {
   Page,
   PaymentAttempt,
   PaymentDetail,
+  RazorpayOrderResponse,
+  RazorpayVerificationResponse,
   RecoveryActionRead,
   RecoveryCaseDetail,
   RecoveryCaseSummary,
@@ -330,6 +332,34 @@ export function isPaymentDetail(value: unknown): value is PaymentDetail {
     isTimestamp(value.updated_at) &&
     Array.isArray(value.attempts) &&
     value.attempts.every(isPaymentAttempt)
+  );
+}
+
+export function isRazorpayOrderResponse(value: unknown): value is RazorpayOrderResponse {
+  return (
+    isRecord(value) &&
+    isString(value.data_source) &&
+    isString(value.notice) &&
+    isString(value.key_id) &&
+    isString(value.order_id) &&
+    isMoney(value.money) &&
+    isRecord(value.payment) &&
+    isString(value.payment.payment_id) &&
+    isString(value.payment.status)
+  );
+}
+
+export function isRazorpayVerificationResponse(value: unknown): value is RazorpayVerificationResponse {
+  return (
+    isRecord(value) &&
+    isString(value.data_source) &&
+    isString(value.notice) &&
+    isString(value.verified_provider_status) &&
+    isRecord(value.payment) &&
+    isString(value.payment.payment_id) &&
+    isString(value.payment.status) &&
+    (value.recovery_case_id === null || isString(value.recovery_case_id)) &&
+    (value.recovery_case_state === null || isString(value.recovery_case_state))
   );
 }
 

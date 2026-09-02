@@ -342,6 +342,25 @@ export interface PaymentDetail extends PaymentRead {
   attempts: PaymentAttempt[];
 }
 
+/** Isolated real-provider Sandbox order data; never used by simulator views. */
+export interface RazorpayOrderResponse {
+  data_source: 'razorpay_sandbox' | string;
+  notice: string;
+  key_id: string;
+  order_id: string;
+  payment: PaymentRead;
+  money: Money;
+}
+
+export interface RazorpayVerificationResponse {
+  data_source: 'razorpay_sandbox' | string;
+  notice: string;
+  payment: PaymentRead;
+  verified_provider_status: string;
+  recovery_case_id: string | null;
+  recovery_case_state: string | null;
+}
+
 // ---------------------------------------------------------------------------
 // Workflow run
 // ---------------------------------------------------------------------------

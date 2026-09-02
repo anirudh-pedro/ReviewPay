@@ -1,0 +1,252 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1.1 Implement `scripts/source_tracking_guard.py` to discover required runtime inputs from Python startup/import/router paths, Alembic, supported scripts/tests, and frontend build inputs; emit stable non-secret JSON with discovery evidence, Git tracking state, and effective ignore-rule provenance.": [
+      {
+        "executionId": "2dacbf3d-45e2-4b50-8ea4-2163126ea4fb",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788325857203
+      },
+      {
+        "executionId": "2dacbf3d-45e2-4b50-8ea4-2163126ea4fb",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788325892062
+      }
+    ],
+    "1.2 Implement cleanup-inventory and release-evidence schemas/validators plus a non-mutating release-input report that consumes the Source Tracking Guard output, baseline evidence, and reviewed replacement-coverage records.": [
+      {
+        "executionId": "2dacbf3d-45e2-4b50-8ea4-2163126ea4fb",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788325858137
+      },
+      {
+        "executionId": "7566e57a-1052-46e3-83bc-fa8a78bd6cdd",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788328359541
+      },
+      {
+        "executionId": "7566e57a-1052-46e3-83bc-fa8a78bd6cdd",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788330251383
+      }
+    ],
+    "1.3 Correct repository tracking for every Source Tracking Guard finding, including required `app/models/`, Razorpay integration, gateway route/schema, and their required test/build inputs; narrow only an ignore rule proven to exclude a required source.": [
+      {
+        "executionId": "2dacbf3d-45e2-4b50-8ea4-2163126ea4fb",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788325858175
+      },
+      {
+        "executionId": "7566e57a-1052-46e3-83bc-fa8a78bd6cdd",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788328360842
+      },
+      {
+        "executionId": "7566e57a-1052-46e3-83bc-fa8a78bd6cdd",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788330252400
+      }
+    ],
+    "2.1 Extend `app/core/config.py`, `app/api/auth.py`, `app/main.py`, `app/api/routes/health.py`, and `app/db/init_db.py` with normalized `local`, `demo`, `test`, `staging`, and `production` profile policy.": [
+      {
+        "executionId": "2dacbf3d-45e2-4b50-8ea4-2163126ea4fb",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788325858231
+      },
+      {
+        "executionId": "7566e57a-1052-46e3-83bc-fa8a78bd6cdd",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788330321264
+      }
+    ],
+    "3.1 Create migration `20260829_04_readiness_integrity` with preflight checks and forward-only database uniqueness, foreign-key, check/state, and immutable audit-sequence protections.": [
+      {
+        "executionId": "2dacbf3d-45e2-4b50-8ea4-2163126ea4fb",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788325858323
+      },
+      {
+        "executionId": "7566e57a-1052-46e3-83bc-fa8a78bd6cdd",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788330322388
+      },
+      {
+        "executionId": "9facdb74-8538-4c48-91c2-f1bb3f196e7e",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788343236102
+      }
+    ],
+    "3.2 Add `SimulationClock` and `ClockAdvanceEvent` models and migration `20260829_05_virtual_clock_state`, including one-time legacy JSON/default-clock seeding, scope uniqueness, versioning, and ordered append-only advance evidence.": [
+      {
+        "executionId": "2dacbf3d-45e2-4b50-8ea4-2163126ea4fb",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788325858360
+      },
+      {
+        "executionId": "9facdb74-8538-4c48-91c2-f1bb3f196e7e",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788343245600
+      }
+    ],
+    "3.3 Extend `BackgroundJob` and `OutboxEvent` models and create migration `20260829_06_job_outbox_lifecycle` for closed lifecycle, bounded retry/lease, idempotency, delivery, and inspectable result/failure fields.": [
+      {
+        "executionId": "2dacbf3d-45e2-4b50-8ea4-2163126ea4fb",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788325858418
+      }
+    ],
+    "3.4 Implement `app/db/schema_readiness.py` and wire safe revision compatibility checks into startup/readiness responses before staging/production accepts Operational Mutations.": [
+      {
+        "executionId": "2dacbf3d-45e2-4b50-8ea4-2163126ea4fb",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788325858460
+      }
+    ],
+    "4.1 Evolve `app/core/clock.py` behind the existing `VirtualClock` interface and add `DatabaseVirtualClock`, `app/services/clock_service.py`, container wiring, and scoped read/advance API handlers.": [
+      {
+        "executionId": "2dacbf3d-45e2-4b50-8ea4-2163126ea4fb",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788325858530
+      }
+    ],
+    "5.1 Implement closed Background Job transitions in `app/services/job_service.py` and complete persistence model behavior for idempotent submission, conditional claim, bounded lease/reclaim, retry, terminal failure, cancellation, and safe result/failure summaries.": [
+      {
+        "executionId": "2dacbf3d-45e2-4b50-8ea4-2163126ea4fb",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788325858581
+      }
+    ],
+    "5.2 Add `app/services/outbox_service.py`, safe inspection handlers, and `scripts/worker.py` as an explicit bounded worker command.": [
+      {
+        "executionId": "2dacbf3d-45e2-4b50-8ea4-2163126ea4fb",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788325858636
+      }
+    ],
+    "6.1 Add typed `GatewayAvailabilityResponse`, `GatewayAvailabilityService`, and the additive read-only Razorpay availability route while retaining existing server-side signature-first gateway verification.": [
+      {
+        "executionId": "2dacbf3d-45e2-4b50-8ea4-2163126ea4fb",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788325858673
+      }
+    ],
+    "6.3 Constrain `app/core/config.py`, `app/core/container.py`, and `app/integrations/action_executor.py` to simulator-only resolution and fail closed for provider executor configuration or registry attempts.": [
+      {
+        "executionId": "2dacbf3d-45e2-4b50-8ea4-2163126ea4fb",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788325858721
+      },
+      {
+        "executionId": "9facdb74-8538-4c48-91c2-f1bb3f196e7e",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788343247115
+      }
+    ],
+    "6.5 Add versioned Copilot schemas plus a disabled adapter, context redactor, bound/schema validator, deterministic fallback selector, and allowlisted audit projection.": [
+      {
+        "executionId": "2dacbf3d-45e2-4b50-8ea4-2163126ea4fb",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788325858790
+      }
+    ],
+    "7.1 Complete every implementation and validation wave in [`../judge-demo-experience/tasks.md`](../judge-demo-experience/tasks.md) unchanged, after source tracking and protected-contract baseline work is complete.": [
+      {
+        "executionId": "2dacbf3d-45e2-4b50-8ea4-2163126ea4fb",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788325858859
+      }
+    ],
+    "8.1 Create `app/schemas/assurance.py`, `app/services/assurance_service.py`, and an additive Command Center assurance endpoint that derives values only from persisted outcomes, policy/audit records, job/outbox lifecycle data, clock records, and schema readiness.": [
+      {
+        "executionId": "2dacbf3d-45e2-4b50-8ea4-2163126ea4fb",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788325858896
+      }
+    ],
+    "8.2 Extend frontend API types, validators, wrappers, and Command Center cards to render only validated returned assurance fields using the Judge Demo disclosure/source-locator primitives.": [
+      {
+        "executionId": "2dacbf3d-45e2-4b50-8ea4-2163126ea4fb",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788325858940
+      }
+    ],
+    "9.1 Extend shared frontend layout, state, and error primitives for Command Center, Judge Demo, Gateway, Autopilot, Strategy Lab, and case evidence surfaces.": [
+      {
+        "executionId": "2dacbf3d-45e2-4b50-8ea4-2163126ea4fb",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788325858991
+      }
+    ],
+    "10.1 Use the validated Cleanup Inventory and Source Tracking Guard to remove or update only candidates classified eligible with complete evidence; update dependent imports, routes, config, migration/test paths, and packages atomically with each approved removal.": [
+      {
+        "executionId": "2dacbf3d-45e2-4b50-8ea4-2163126ea4fb",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788325859055
+      }
+    ],
+    "11.1 Update the release/baseline/cleanup and operational runbook sources with the supported architecture, profile matrix, migration/readiness process, clock/job/outbox lifecycle, Sandbox availability meanings, Copilot/executor boundaries, assurance sources, limitations, and mutation preconditions.": [
+      {
+        "executionId": "2dacbf3d-45e2-4b50-8ea4-2163126ea4fb",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788325859107
+      }
+    ],
+    "11.2 Implement `scripts/release_validate.py` and release-record generation to run non-mutating source tracking, cleanup validation, migration/readiness fixtures, backend/property tests, frontend typecheck/build, browser checks, and secret-safe evidence collection.": [
+      {
+        "executionId": "2dacbf3d-45e2-4b50-8ea4-2163126ea4fb",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788325859169
+      }
+    ],
+    "12. Final checkpoint — ensure all tests pass, ask the user if questions arise.": [
+      {
+        "executionId": "2dacbf3d-45e2-4b50-8ea4-2163126ea4fb",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788325859233
+      }
+    ],
+    "1. Establish source-control evidence and release-input guards before any cleanup": [
+      {
+        "executionId": "7566e57a-1052-46e3-83bc-fa8a78bd6cdd",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788330252451
+      }
+    ],
+    "1.4 Write property-based tests for **Property 1: Runtime Source and Release Baseline Are Closed**, with at least 100 generated repository/import/ignore/test-count cases.": [
+      {
+        "executionId": "7566e57a-1052-46e3-83bc-fa8a78bd6cdd",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788330310118
+      },
+      {
+        "executionId": "7566e57a-1052-46e3-83bc-fa8a78bd6cdd",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788337606675
+      }
+    ],
+    "1.5 Write property-based tests for **Property 2: Cleanup Classification Fails Closed**, with at least 100 generated candidate/reference-evidence cases.": [
+      {
+        "executionId": "7566e57a-1052-46e3-83bc-fa8a78bd6cdd",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788330311171
+      },
+      {
+        "executionId": "7566e57a-1052-46e3-83bc-fa8a78bd6cdd",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788337608163
+      }
+    ],
+    "2.2 Add protected-contract baseline regression fixtures for existing recovery decisions, policy outcomes, ERV values, simulator/outcome behavior, audit ordering, public response fields, and standard error-envelope semantics.": [
+      {
+        "executionId": "7566e57a-1052-46e3-83bc-fa8a78bd6cdd",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788337671286
+      },
+      {
+        "executionId": "b236a70a-486e-4ff8-887d-fa7f521adef9",
+        "chatSessionId": "sess_574b3a6b-4e3a-417d-a4fc-20f5522d566d",
+        "timestamp": 1788341005796
+      }
+    ]
+  }
+}

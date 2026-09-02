@@ -1,0 +1,2664 @@
+{
+  "autopilot_response_fields": {
+    "fields": [
+      "actions_blocked",
+      "actions_escalated",
+      "actions_executed",
+      "cases_escalated",
+      "cases_recovered",
+      "cases_stopped",
+      "cases_unresolved",
+      "data_source",
+      "ended_at",
+      "notice",
+      "recovery_rate",
+      "results",
+      "results[].alternatives",
+      "results[].alternatives[].action",
+      "results[].alternatives[].expected_recovery_value",
+      "results[].alternatives[].probability",
+      "results[].amount_at_risk",
+      "results[].amount_at_risk.amount",
+      "results[].amount_at_risk.currency",
+      "results[].case_id",
+      "results[].clock_advances",
+      "results[].customer_id",
+      "results[].error",
+      "results[].expected_recovery_value",
+      "results[].expected_recovery_value.amount",
+      "results[].expected_recovery_value.currency",
+      "results[].explanation",
+      "results[].failure_reason",
+      "results[].final_state",
+      "results[].payment_id",
+      "results[].payment_method",
+      "results[].policy_outcome",
+      "results[].policy_reason",
+      "results[].policy_rule_id",
+      "results[].probability",
+      "results[].recovered",
+      "results[].recovered_amount",
+      "results[].recovered_amount.amount",
+      "results[].recovered_amount.currency",
+      "results[].runs",
+      "results[].selected_action",
+      "results[].steps",
+      "results[].steps[].execution_status",
+      "results[].steps[].message",
+      "results[].steps[].policy_outcome",
+      "results[].steps[].policy_rule_id",
+      "results[].steps[].recovered_amount",
+      "results[].steps[].recovered_amount.amount",
+      "results[].steps[].recovered_amount.currency",
+      "results[].steps[].run_index",
+      "results[].steps[].selected_action",
+      "results[].steps[].stages",
+      "results[].steps[].state",
+      "results[].steps[].waiting_until",
+      "started_at",
+      "total_at_risk",
+      "total_at_risk.amount",
+      "total_at_risk.currency",
+      "total_cases",
+      "total_expected_recovery_value",
+      "total_expected_recovery_value.amount",
+      "total_expected_recovery_value.currency",
+      "total_recovered",
+      "total_recovered.amount",
+      "total_recovered.currency"
+    ],
+    "status_code": 200
+  },
+  "configuration": {
+    "action_executor_impl": "simulator",
+    "allow_human_escalation": true,
+    "default_currency": "INR",
+    "diagnosis_engine_impl": "rule_based",
+    "friction_penalty_minor": {
+      "CHANGE_PAYMENT_METHOD": 20000,
+      "ESCALATE_HUMAN": 0,
+      "RETRY_LATER": 10000,
+      "RETRY_NOW": 2000,
+      "SEND_PAYMENT_LINK": 15000,
+      "SEND_REMINDER": 8000,
+      "STOP": 0
+    },
+    "high_value_escalation_threshold": 5000000,
+    "intervention_cost_minor": {
+      "CHANGE_PAYMENT_METHOD": 3000,
+      "ESCALATE_HUMAN": 50000,
+      "RETRY_LATER": 2000,
+      "RETRY_NOW": 500,
+      "SEND_PAYMENT_LINK": 3000,
+      "SEND_REMINDER": 1000,
+      "STOP": 0
+    },
+    "max_automatic_retries": 2,
+    "policy_rule_order": [
+      "invalid_payment_state",
+      "unsupported_action",
+      "retry_limit_reached",
+      "recovery_budget_exhausted",
+      "repeated_failure_limit",
+      "unknown_failure",
+      "high_value_transaction",
+      "default_approve"
+    ],
+    "recovery_predictor_impl": "deterministic",
+    "repeated_failure_limit": 3,
+    "retry_later_delay_minutes": 15,
+    "simulation_seed": 20260101,
+    "simulator_fallback_probability": 0.3,
+    "virtual_clock_start": "2026-01-01T13:00:00"
+  },
+  "error_envelope": {
+    "empty_clock_advance": {
+      "code": "VALIDATION_ERROR",
+      "fields": [
+        "error",
+        "error.code",
+        "error.message"
+      ],
+      "status_code": 422
+    },
+    "invalid_clock_advance": {
+      "code": "VALIDATION_ERROR",
+      "fields": [
+        "error",
+        "error.code",
+        "error.message"
+      ],
+      "status_code": 422
+    },
+    "terminal_case_run": {
+      "code": "CASE_TERMINAL",
+      "fields": [
+        "error",
+        "error.code",
+        "error.message"
+      ],
+      "status_code": 409
+    },
+    "unknown_case": {
+      "code": "NOT_FOUND",
+      "fields": [
+        "error",
+        "error.code",
+        "error.message"
+      ],
+      "status_code": 404
+    },
+    "unknown_payment": {
+      "code": "NOT_FOUND",
+      "fields": [
+        "error",
+        "error.code",
+        "error.message"
+      ],
+      "status_code": 404
+    }
+  },
+  "public_response_fields": {
+    "GET /health": {
+      "fields": [
+        "app_name",
+        "authenticated_principal_required",
+        "authentication_mode",
+        "data_source",
+        "environment",
+        "environment_profile",
+        "status",
+        "version",
+        "virtual_clock_time"
+      ],
+      "status_code": 200
+    },
+    "GET /readyz": {
+      "fields": [
+        "authenticated_principal_required",
+        "authentication_mode",
+        "database",
+        "environment_profile",
+        "status"
+      ],
+      "status_code": 200
+    },
+    "GET {prefix}/analytics/recovery": {
+      "fields": [
+        "actions",
+        "actions.escalated",
+        "actions.failed",
+        "actions.selected",
+        "actions.stopped",
+        "actions.successful",
+        "average_recovery_probability",
+        "cases_by_state",
+        "cases_by_state.ESCALATED",
+        "cases_by_state.RECOVERED",
+        "cases_by_state.STOPPED",
+        "data_source",
+        "notice",
+        "verified_outcomes"
+      ],
+      "status_code": 200
+    },
+    "GET {prefix}/analytics/revenue": {
+      "fields": [
+        "average_recovery_value",
+        "average_recovery_value.amount",
+        "average_recovery_value.currency",
+        "cases_recovered",
+        "cases_total",
+        "data_source",
+        "notice",
+        "payments_at_risk",
+        "recovery_rate",
+        "revenue_at_risk",
+        "revenue_at_risk.amount",
+        "revenue_at_risk.currency",
+        "revenue_recovered",
+        "revenue_recovered.amount",
+        "revenue_recovered.currency"
+      ],
+      "status_code": 200
+    },
+    "GET {prefix}/payments": {
+      "fields": [
+        "items",
+        "items[].attempt_count",
+        "items[].created_at",
+        "items[].customer_id",
+        "items[].failure_reason",
+        "items[].is_synthetic",
+        "items[].merchant_id",
+        "items[].money",
+        "items[].money.amount",
+        "items[].money.currency",
+        "items[].payment_id",
+        "items[].payment_method",
+        "items[].status",
+        "items[].updated_at",
+        "limit",
+        "offset",
+        "total"
+      ],
+      "status_code": 200
+    },
+    "GET {prefix}/payments/pay_demo_a": {
+      "fields": [
+        "attempt_count",
+        "attempts",
+        "attempts[].action_type",
+        "attempts[].attempt_id",
+        "attempts[].attempt_number",
+        "attempts[].attempted_at",
+        "attempts[].failure_reason",
+        "attempts[].provider_response",
+        "attempts[].provider_response.attempt_number",
+        "attempts[].provider_response.channel",
+        "attempts[].provider_response.decision_basis",
+        "attempts[].provider_response.failure_reason",
+        "attempts[].provider_response.note",
+        "attempts[].provider_response.origin",
+        "attempts[].provider_response.outcome",
+        "attempts[].provider_response.payment_touched",
+        "attempts[].provider_response.provider",
+        "attempts[].provider_response.scripted_outcome",
+        "attempts[].provider_response.simulated",
+        "attempts[].source",
+        "attempts[].status",
+        "created_at",
+        "customer_id",
+        "failure_reason",
+        "is_synthetic",
+        "merchant_id",
+        "money",
+        "money.amount",
+        "money.currency",
+        "payment_id",
+        "payment_method",
+        "status",
+        "updated_at"
+      ],
+      "status_code": 200
+    },
+    "GET {prefix}/recovery/baseline": {
+      "fields": [
+        "baseline",
+        "baseline.actions_used",
+        "baseline.actions_used.RETRY_NOW",
+        "baseline.amount_at_risk",
+        "baseline.amount_at_risk.amount",
+        "baseline.amount_at_risk.currency",
+        "baseline.cases",
+        "baseline.cases_blocked",
+        "baseline.cases_escalated",
+        "baseline.cases_projected_recovered",
+        "baseline.description",
+        "baseline.escalation_rate",
+        "baseline.expected_recovery_value",
+        "baseline.expected_recovery_value.amount",
+        "baseline.expected_recovery_value.currency",
+        "baseline.projected_recovered",
+        "baseline.projected_recovered.amount",
+        "baseline.projected_recovered.currency",
+        "baseline.projected_recovery_rate",
+        "baseline.strategy",
+        "cases_evaluated",
+        "data_source",
+        "expected_value_uplift",
+        "expected_value_uplift.amount",
+        "expected_value_uplift.currency",
+        "notice",
+        "recovered_uplift",
+        "recovered_uplift.amount",
+        "recovered_uplift.currency",
+        "recovered_uplift_pct",
+        "recovery_rate_uplift_pct",
+        "revivepay",
+        "revivepay.actions_used",
+        "revivepay.actions_used.CHANGE_PAYMENT_METHOD",
+        "revivepay.actions_used.RETRY_LATER",
+        "revivepay.amount_at_risk",
+        "revivepay.amount_at_risk.amount",
+        "revivepay.amount_at_risk.currency",
+        "revivepay.cases",
+        "revivepay.cases_blocked",
+        "revivepay.cases_escalated",
+        "revivepay.cases_projected_recovered",
+        "revivepay.description",
+        "revivepay.escalation_rate",
+        "revivepay.expected_recovery_value",
+        "revivepay.expected_recovery_value.amount",
+        "revivepay.expected_recovery_value.currency",
+        "revivepay.projected_recovered",
+        "revivepay.projected_recovered.amount",
+        "revivepay.projected_recovered.currency",
+        "revivepay.projected_recovery_rate",
+        "revivepay.strategy"
+      ],
+      "status_code": 200
+    },
+    "GET {prefix}/recovery/cases": {
+      "fields": [
+        "items",
+        "items[].amount_at_risk",
+        "items[].amount_at_risk.amount",
+        "items[].amount_at_risk.currency",
+        "items[].case_id",
+        "items[].created_at",
+        "items[].payment_id",
+        "items[].state",
+        "items[].updated_at",
+        "limit",
+        "offset",
+        "total"
+      ],
+      "status_code": 200
+    },
+    "GET {prefix}/recovery/cases/case_demo_a": {
+      "fields": [
+        "actions",
+        "actions[].action_id",
+        "actions[].action_type",
+        "actions[].confidence",
+        "actions[].created_at",
+        "actions[].decision_explanation",
+        "actions[].decision_explanation.alternatives",
+        "actions[].decision_explanation.alternatives[].action",
+        "actions[].decision_explanation.alternatives[].expected_recovery_value",
+        "actions[].decision_explanation.alternatives[].probability",
+        "actions[].decision_explanation.confidence",
+        "actions[].decision_explanation.expected_recovery_value",
+        "actions[].decision_explanation.probability",
+        "actions[].decision_explanation.reason",
+        "actions[].decision_explanation.selected_action",
+        "actions[].erv_breakdown",
+        "actions[].erv_breakdown.action",
+        "actions[].erv_breakdown.customer_friction_penalty",
+        "actions[].erv_breakdown.expected_recovery_value",
+        "actions[].erv_breakdown.gross_expected_recovery",
+        "actions[].erv_breakdown.intervention_cost",
+        "actions[].erv_breakdown.payment_amount",
+        "actions[].erv_breakdown.recovery_probability",
+        "actions[].estimated_probability",
+        "actions[].executed_at",
+        "actions[].expected_recovery_value",
+        "actions[].model_version",
+        "actions[].policy_outcome",
+        "actions[].policy_reason",
+        "actions[].policy_rule_id",
+        "actions[].requires_human_approval",
+        "actions[].risk_level",
+        "actions[].scheduled_at",
+        "actions[].status",
+        "amount_at_risk",
+        "amount_at_risk.amount",
+        "amount_at_risk.currency",
+        "case_id",
+        "created_at",
+        "diagnosis",
+        "diagnosis.category",
+        "diagnosis.explanation",
+        "diagnosis.failure_reason",
+        "diagnosis.requires_escalation",
+        "diagnosis.transience",
+        "is_terminal",
+        "latest_action",
+        "latest_action.action_id",
+        "latest_action.action_type",
+        "latest_action.confidence",
+        "latest_action.created_at",
+        "latest_action.decision_explanation",
+        "latest_action.decision_explanation.alternatives",
+        "latest_action.decision_explanation.alternatives[].action",
+        "latest_action.decision_explanation.alternatives[].expected_recovery_value",
+        "latest_action.decision_explanation.alternatives[].probability",
+        "latest_action.decision_explanation.confidence",
+        "latest_action.decision_explanation.expected_recovery_value",
+        "latest_action.decision_explanation.probability",
+        "latest_action.decision_explanation.reason",
+        "latest_action.decision_explanation.selected_action",
+        "latest_action.erv_breakdown",
+        "latest_action.erv_breakdown.action",
+        "latest_action.erv_breakdown.customer_friction_penalty",
+        "latest_action.erv_breakdown.expected_recovery_value",
+        "latest_action.erv_breakdown.gross_expected_recovery",
+        "latest_action.erv_breakdown.intervention_cost",
+        "latest_action.erv_breakdown.payment_amount",
+        "latest_action.erv_breakdown.recovery_probability",
+        "latest_action.estimated_probability",
+        "latest_action.executed_at",
+        "latest_action.expected_recovery_value",
+        "latest_action.model_version",
+        "latest_action.policy_outcome",
+        "latest_action.policy_reason",
+        "latest_action.policy_rule_id",
+        "latest_action.requires_human_approval",
+        "latest_action.risk_level",
+        "latest_action.scheduled_at",
+        "latest_action.status",
+        "latest_explanation",
+        "latest_explanation.alternatives",
+        "latest_explanation.alternatives[].action",
+        "latest_explanation.alternatives[].expected_recovery_value",
+        "latest_explanation.alternatives[].probability",
+        "latest_explanation.confidence",
+        "latest_explanation.expected_recovery_value",
+        "latest_explanation.probability",
+        "latest_explanation.reason",
+        "latest_explanation.selected_action",
+        "latest_outcome",
+        "latest_outcome.action_id",
+        "latest_outcome.failure_reason",
+        "latest_outcome.new_payment_status",
+        "latest_outcome.outcome_id",
+        "latest_outcome.previous_payment_status",
+        "latest_outcome.recovered",
+        "latest_outcome.recovered_amount",
+        "latest_outcome.verification_timestamp",
+        "latest_policy",
+        "latest_policy.outcome",
+        "latest_policy.reason",
+        "latest_policy.rule_id",
+        "payment_id",
+        "state",
+        "updated_at",
+        "waiting_until"
+      ],
+      "status_code": 200
+    },
+    "GET {prefix}/recovery/cases/case_demo_a/audit": {
+      "fields": [
+        "case_id",
+        "events",
+        "events[].case_id",
+        "events[].event_id",
+        "events[].event_type",
+        "events[].message",
+        "events[].metadata",
+        "events[].metadata.action",
+        "events[].metadata.action_id",
+        "events[].metadata.alternatives",
+        "events[].metadata.alternatives[].action",
+        "events[].metadata.alternatives[].expected_recovery_value",
+        "events[].metadata.alternatives[].probability",
+        "events[].metadata.amount",
+        "events[].metadata.amount_at_risk",
+        "events[].metadata.attempt_count",
+        "events[].metadata.candidate_count",
+        "events[].metadata.candidates",
+        "events[].metadata.candidates[].action",
+        "events[].metadata.candidates[].confidence",
+        "events[].metadata.candidates[].customer_friction_penalty",
+        "events[].metadata.candidates[].expected_recovery_value",
+        "events[].metadata.candidates[].gross_expected_recovery",
+        "events[].metadata.candidates[].intervention_cost",
+        "events[].metadata.candidates[].probability",
+        "events[].metadata.candidates[].risk_level",
+        "events[].metadata.category",
+        "events[].metadata.confidence",
+        "events[].metadata.currency",
+        "events[].metadata.delay_minutes",
+        "events[].metadata.detection_reason",
+        "events[].metadata.erv_breakdown",
+        "events[].metadata.erv_breakdown.action",
+        "events[].metadata.erv_breakdown.customer_friction_penalty",
+        "events[].metadata.erv_breakdown.expected_recovery_value",
+        "events[].metadata.erv_breakdown.gross_expected_recovery",
+        "events[].metadata.erv_breakdown.intervention_cost",
+        "events[].metadata.erv_breakdown.payment_amount",
+        "events[].metadata.erv_breakdown.recovery_probability",
+        "events[].metadata.evaluated_action",
+        "events[].metadata.executed_at",
+        "events[].metadata.execution_status",
+        "events[].metadata.expected_recovery_value",
+        "events[].metadata.explanation",
+        "events[].metadata.failure_reason",
+        "events[].metadata.limits",
+        "events[].metadata.limits.allow_human_escalation",
+        "events[].metadata.limits.high_value_escalation_threshold",
+        "events[].metadata.limits.max_automatic_retries",
+        "events[].metadata.limits.repeated_failure_limit",
+        "events[].metadata.model_version",
+        "events[].metadata.new_payment_status",
+        "events[].metadata.payment_id",
+        "events[].metadata.payment_method",
+        "events[].metadata.payment_status",
+        "events[].metadata.policy_outcome",
+        "events[].metadata.policy_reason",
+        "events[].metadata.policy_rule_id",
+        "events[].metadata.predicted_probability",
+        "events[].metadata.previous_payment_status",
+        "events[].metadata.previous_recovery_attempts",
+        "events[].metadata.probability",
+        "events[].metadata.provider_response",
+        "events[].metadata.provider_response.attempt_number",
+        "events[].metadata.provider_response.channel",
+        "events[].metadata.provider_response.decision_basis",
+        "events[].metadata.provider_response.failure_reason",
+        "events[].metadata.provider_response.note",
+        "events[].metadata.provider_response.outcome",
+        "events[].metadata.provider_response.payment_touched",
+        "events[].metadata.provider_response.provider",
+        "events[].metadata.provider_response.scheduled_at",
+        "events[].metadata.provider_response.scripted_outcome",
+        "events[].metadata.provider_response.simulated",
+        "events[].metadata.recovered",
+        "events[].metadata.recovered_amount",
+        "events[].metadata.requires_escalation",
+        "events[].metadata.risk_level",
+        "events[].metadata.rules_evaluated",
+        "events[].metadata.scheduled_at",
+        "events[].metadata.scheduled_from",
+        "events[].metadata.selected_action",
+        "events[].metadata.transience",
+        "events[].metadata.verification_basis",
+        "events[].metadata.workflow_id",
+        "events[].payment_id",
+        "events[].sequence",
+        "events[].stage",
+        "events[].timestamp",
+        "total"
+      ],
+      "status_code": 200
+    },
+    "GET {prefix}/recovery/overview": {
+      "fields": [
+        "active_cases",
+        "average_recovery_probability",
+        "average_recovery_value",
+        "average_recovery_value.amount",
+        "average_recovery_value.currency",
+        "by_action",
+        "by_action[].action_type",
+        "by_action[].amount_recovered",
+        "by_action[].amount_recovered.amount",
+        "by_action[].amount_recovered.currency",
+        "by_action[].average_amount_recovered",
+        "by_action[].average_amount_recovered.amount",
+        "by_action[].average_amount_recovered.currency",
+        "by_action[].blocked",
+        "by_action[].escalated",
+        "by_action[].executed",
+        "by_action[].failures",
+        "by_action[].selected",
+        "by_action[].success_rate",
+        "by_action[].successes",
+        "by_failure_reason",
+        "by_failure_reason[].amount_at_risk",
+        "by_failure_reason[].amount_at_risk.amount",
+        "by_failure_reason[].amount_at_risk.currency",
+        "by_failure_reason[].amount_recovered",
+        "by_failure_reason[].amount_recovered.amount",
+        "by_failure_reason[].amount_recovered.currency",
+        "by_failure_reason[].cases",
+        "by_failure_reason[].failure_reason",
+        "by_failure_reason[].recovered_cases",
+        "by_failure_reason[].recovery_rate",
+        "cases_by_state",
+        "cases_by_state.ESCALATED",
+        "cases_by_state.RECOVERED",
+        "cases_by_state.STOPPED",
+        "cases_recovered",
+        "cases_total",
+        "data_source",
+        "expected_recovery_value_approved",
+        "expected_recovery_value_approved.amount",
+        "expected_recovery_value_approved.currency",
+        "expected_recovery_value_total",
+        "expected_recovery_value_total.amount",
+        "expected_recovery_value_total.currency",
+        "human_escalations",
+        "notice",
+        "payments_at_risk",
+        "policy_approvals",
+        "policy_blocks",
+        "recovery_rate",
+        "revenue_at_risk",
+        "revenue_at_risk.amount",
+        "revenue_at_risk.currency",
+        "revenue_recovered",
+        "revenue_recovered.amount",
+        "revenue_recovered.currency",
+        "safety",
+        "safety.blocked_actions_never_executed",
+        "safety.complete_audit_trail",
+        "safety.high_value_escalation_enabled",
+        "safety.high_value_threshold",
+        "safety.high_value_threshold.amount",
+        "safety.high_value_threshold.currency",
+        "safety.max_automatic_retries",
+        "safety.outcomes_independently_verified",
+        "safety.policy_rules",
+        "safety.recovery_budget_enforced",
+        "scheduled_cases",
+        "successful_recoveries",
+        "verified_outcomes",
+        "virtual_clock_time"
+      ],
+      "status_code": 200
+    },
+    "GET {prefix}/recovery/scenarios": {
+      "fields": [
+        "data_source",
+        "notice",
+        "scenarios",
+        "scenarios[].amount",
+        "scenarios[].amount.amount",
+        "scenarios[].amount.currency",
+        "scenarios[].case_id",
+        "scenarios[].current_state",
+        "scenarios[].expected_action",
+        "scenarios[].expected_final_state",
+        "scenarios[].failure_reason",
+        "scenarios[].key",
+        "scenarios[].narrative",
+        "scenarios[].payment_id",
+        "scenarios[].requires_clock_advance",
+        "scenarios[].title",
+        "virtual_clock_time"
+      ],
+      "status_code": 200
+    },
+    "GET {prefix}/simulate/clock": {
+      "fields": [
+        "advanced_by_minutes",
+        "previous_virtual_clock_time",
+        "virtual_clock_time"
+      ],
+      "status_code": 200
+    }
+  },
+  "runnable_case_response_fields": {
+    "GET {prefix}/recovery/cases/case_demo_a/intelligence": {
+      "fields": [
+        "adaptive_reasoning",
+        "adaptive_recommended_action",
+        "amount",
+        "amount.amount",
+        "amount.currency",
+        "candidates",
+        "candidates[].action",
+        "candidates[].adaptive_expected_recovery_value",
+        "candidates[].adaptive_expected_recovery_value.amount",
+        "candidates[].adaptive_expected_recovery_value.currency",
+        "candidates[].deterministic_confidence",
+        "candidates[].deterministic_expected_recovery_value",
+        "candidates[].deterministic_expected_recovery_value.amount",
+        "candidates[].deterministic_expected_recovery_value.currency",
+        "candidates[].deterministic_probability",
+        "candidates[].friction_penalty",
+        "candidates[].friction_penalty.amount",
+        "candidates[].friction_penalty.currency",
+        "candidates[].historical_evidence",
+        "candidates[].historical_evidence.cohort",
+        "candidates[].historical_evidence.statement",
+        "candidates[].historical_evidence.success_rate",
+        "candidates[].historical_evidence.synthetic_samples",
+        "candidates[].historical_evidence.synthetic_successes",
+        "candidates[].historical_evidence.total_samples",
+        "candidates[].historical_evidence.verified_samples",
+        "candidates[].historical_evidence.verified_successes",
+        "candidates[].intervention_cost",
+        "candidates[].intervention_cost.amount",
+        "candidates[].intervention_cost.currency",
+        "candidates[].is_adaptive_recommended",
+        "candidates[].is_candidate",
+        "candidates[].is_production_selected",
+        "candidates[].learned_probability",
+        "candidates[].learning_factors",
+        "candidates[].learning_factors[].description",
+        "candidates[].learning_factors[].influence",
+        "candidates[].learning_factors[].name",
+        "candidates[].learning_factors[].value",
+        "candidates[].model_confidence",
+        "candidates[].policy_outcome",
+        "candidates[].policy_reason",
+        "candidates[].policy_rule_id",
+        "candidates[].probability_delta",
+        "candidates[].rejected_reason",
+        "candidates[].risk_level",
+        "candidates[].simulated_would_recover",
+        "candidates[].simulation_basis",
+        "case_id",
+        "counterfactual",
+        "counterfactual.baseline",
+        "counterfactual.baseline.action",
+        "counterfactual.baseline.expected_recovery_value",
+        "counterfactual.baseline.expected_recovery_value.amount",
+        "counterfactual.baseline.expected_recovery_value.currency",
+        "counterfactual.baseline.label",
+        "counterfactual.baseline.policy_outcome",
+        "counterfactual.baseline.policy_reason",
+        "counterfactual.baseline.policy_rule_id",
+        "counterfactual.baseline.probability",
+        "counterfactual.baseline.projected_recovered",
+        "counterfactual.baseline.projected_recovered.amount",
+        "counterfactual.baseline.projected_recovered.currency",
+        "counterfactual.baseline.simulated_would_recover",
+        "counterfactual.baseline.simulation_basis",
+        "counterfactual.basis",
+        "counterfactual.expected_recovery_value_uplift",
+        "counterfactual.expected_recovery_value_uplift.amount",
+        "counterfactual.expected_recovery_value_uplift.currency",
+        "counterfactual.notice",
+        "counterfactual.projected_recovered_uplift",
+        "counterfactual.projected_recovered_uplift.amount",
+        "counterfactual.projected_recovered_uplift.currency",
+        "counterfactual.projected_recovered_uplift_pct",
+        "counterfactual.revivepay",
+        "counterfactual.revivepay.action",
+        "counterfactual.revivepay.expected_recovery_value",
+        "counterfactual.revivepay.expected_recovery_value.amount",
+        "counterfactual.revivepay.expected_recovery_value.currency",
+        "counterfactual.revivepay.label",
+        "counterfactual.revivepay.policy_outcome",
+        "counterfactual.revivepay.policy_reason",
+        "counterfactual.revivepay.policy_rule_id",
+        "counterfactual.revivepay.probability",
+        "counterfactual.revivepay.projected_recovered",
+        "counterfactual.revivepay.projected_recovered.amount",
+        "counterfactual.revivepay.projected_recovered.currency",
+        "counterfactual.revivepay.simulated_would_recover",
+        "counterfactual.revivepay.simulation_basis",
+        "data_source",
+        "diagnosis",
+        "diagnosis.customer_context",
+        "diagnosis.customer_context.history_available",
+        "diagnosis.customer_context.is_returning_customer",
+        "diagnosis.customer_context.subscription_status",
+        "diagnosis.customer_context.success_rate",
+        "diagnosis.customer_context.successful_recovery_actions",
+        "diagnosis.customer_context.summary",
+        "diagnosis.customer_context.total_payments",
+        "diagnosis.fallback_reason",
+        "diagnosis.fallback_used",
+        "diagnosis.reasoning",
+        "diagnosis.recommended_recovery_approach",
+        "diagnosis.root_cause",
+        "diagnosis.severity",
+        "diagnosis.source",
+        "failure_detected",
+        "model",
+        "model.bounded_window",
+        "model.fallback_reason",
+        "model.fallback_used",
+        "model.model_version",
+        "model.synthetic_samples",
+        "model.training_samples",
+        "model.verified_outcome_samples",
+        "notice",
+        "payment_id",
+        "production_selected_action"
+      ],
+      "status_code": 200
+    },
+    "POST {prefix}/recovery/cases/case_demo_a/simulate": {
+      "fields": [
+        "amount",
+        "amount.amount",
+        "amount.currency",
+        "attempt_count",
+        "case_id",
+        "case_state",
+        "current_action",
+        "customer",
+        "customer.attempted_actions",
+        "customer.average_transaction_value",
+        "customer.average_transaction_value.amount",
+        "customer.average_transaction_value.currency",
+        "customer.customer_id",
+        "customer.days_since_previous_payment",
+        "customer.failed_actions",
+        "customer.failed_payments",
+        "customer.history_available",
+        "customer.is_returning_customer",
+        "customer.previous_recovery_attempts",
+        "customer.subscription_status",
+        "customer.succeeded_actions",
+        "customer.success_rate",
+        "customer.successful_payments",
+        "customer.total_payments",
+        "data_source",
+        "diagnosis",
+        "diagnosis.category",
+        "diagnosis.explanation",
+        "diagnosis.failure_reason",
+        "diagnosis.requires_escalation",
+        "diagnosis.transience",
+        "effective_settings",
+        "effective_settings.high_value_escalation_threshold",
+        "effective_settings.max_automatic_retries",
+        "effective_settings.repeated_failure_limit",
+        "effective_settings.retry_later_delay_minutes",
+        "failure_reason",
+        "model_version",
+        "notice",
+        "options",
+        "options[].action",
+        "options[].confidence",
+        "options[].eligible",
+        "options[].expected_recovery_value",
+        "options[].expected_recovery_value.amount",
+        "options[].expected_recovery_value.currency",
+        "options[].friction_penalty",
+        "options[].friction_penalty.amount",
+        "options[].friction_penalty.currency",
+        "options[].gross_expected_recovery",
+        "options[].gross_expected_recovery.amount",
+        "options[].gross_expected_recovery.currency",
+        "options[].intervention_cost",
+        "options[].intervention_cost.amount",
+        "options[].intervention_cost.currency",
+        "options[].is_candidate",
+        "options[].is_current",
+        "options[].is_recommended",
+        "options[].policy_outcome",
+        "options[].policy_reason",
+        "options[].policy_rule_id",
+        "options[].probability",
+        "options[].risk_level",
+        "options[].simulated_would_succeed",
+        "options[].simulation_basis",
+        "overrides_applied",
+        "payment_id",
+        "payment_method",
+        "recommendation_reason",
+        "recommended_action"
+      ],
+      "status_code": 200
+    }
+  },
+  "scenarios": {
+    "A": {
+      "amount_at_risk": 1000000,
+      "audit_events": [
+        {
+          "event_type": "REVENUE_RISK_DETECTED",
+          "sequence": 1,
+          "stage": "DETECTION",
+          "timestamp": "2026-01-01T13:00:00"
+        },
+        {
+          "event_type": "DIAGNOSIS_COMPLETED",
+          "sequence": 2,
+          "stage": "DIAGNOSIS",
+          "timestamp": "2026-01-01T13:00:00"
+        },
+        {
+          "event_type": "RECOVERY_OPTIONS_EVALUATED",
+          "sequence": 3,
+          "stage": "EVALUATION",
+          "timestamp": "2026-01-01T13:00:00"
+        },
+        {
+          "event_type": "RECOVERY_DECISION_SELECTED",
+          "sequence": 4,
+          "stage": "DECISION",
+          "timestamp": "2026-01-01T13:00:00"
+        },
+        {
+          "event_type": "POLICY_APPROVED",
+          "sequence": 5,
+          "stage": "POLICY",
+          "timestamp": "2026-01-01T13:00:00"
+        },
+        {
+          "event_type": "ACTION_SCHEDULED",
+          "sequence": 6,
+          "stage": "SCHEDULING",
+          "timestamp": "2026-01-01T13:00:00"
+        },
+        {
+          "event_type": "ACTION_EXECUTED",
+          "sequence": 7,
+          "stage": "EXECUTION",
+          "timestamp": "2026-01-01T13:15:00"
+        },
+        {
+          "event_type": "OUTCOME_VERIFIED",
+          "sequence": 8,
+          "stage": "VERIFICATION",
+          "timestamp": "2026-01-01T13:15:00"
+        },
+        {
+          "event_type": "REVENUE_RECOVERED",
+          "sequence": 9,
+          "stage": "VERIFICATION",
+          "timestamp": "2026-01-01T13:15:00"
+        }
+      ],
+      "case_id": "case_demo_a",
+      "clock_advances": 1,
+      "diagnosis": {
+        "category": "TRANSIENT",
+        "explanation": "The issuing bank did not respond in time. This is transient infrastructure behaviour, so the same instrument usually succeeds on a later attempt.",
+        "failure_reason": "BANK_TIMEOUT",
+        "requires_escalation": false,
+        "transience": "TRANSIENT"
+      },
+      "final_state": "RECOVERED",
+      "payment_id": "pay_demo_a",
+      "runs": [
+        {
+          "currency": "INR",
+          "decision": {
+            "breakdown": {
+              "action": "RETRY_LATER",
+              "customer_friction_penalty": 10000,
+              "expected_recovery_value": 764000,
+              "gross_expected_recovery": 776000,
+              "intervention_cost": 2000,
+              "payment_amount": 1000000,
+              "recovery_probability": 0.776
+            },
+            "confidence": 1.0,
+            "expected_recovery_value": 764000,
+            "explanation": {
+              "alternatives": [
+                {
+                  "action": "SEND_PAYMENT_LINK",
+                  "expected_recovery_value": 529000,
+                  "probability": 0.547
+                },
+                {
+                  "action": "RETRY_NOW",
+                  "expected_recovery_value": 345500,
+                  "probability": 0.348
+                }
+              ],
+              "confidence": 1.0,
+              "expected_recovery_value": 764000,
+              "probability": 0.776,
+              "reason": "RETRY_LATER was selected because it has the highest expected recovery value (764000 INR minor units) among the 3 evaluated candidate action(s). It beats SEND_PAYMENT_LINK by 235000 minor units, driven by a recovery probability of 0.776 against 0.547.",
+              "selected_action": "RETRY_LATER"
+            },
+            "model_version": "deterministic-scorer-v1",
+            "probability": 0.776,
+            "ranked": [
+              {
+                "action": "RETRY_LATER",
+                "breakdown": {
+                  "action": "RETRY_LATER",
+                  "customer_friction_penalty": 10000,
+                  "expected_recovery_value": 764000,
+                  "gross_expected_recovery": 776000,
+                  "intervention_cost": 2000,
+                  "payment_amount": 1000000,
+                  "recovery_probability": 0.776
+                },
+                "confidence": 1.0,
+                "expected_recovery_value": 764000,
+                "probability": 0.776,
+                "risk_level": "LOW"
+              },
+              {
+                "action": "SEND_PAYMENT_LINK",
+                "breakdown": {
+                  "action": "SEND_PAYMENT_LINK",
+                  "customer_friction_penalty": 15000,
+                  "expected_recovery_value": 529000,
+                  "gross_expected_recovery": 547000,
+                  "intervention_cost": 3000,
+                  "payment_amount": 1000000,
+                  "recovery_probability": 0.547
+                },
+                "confidence": 1.0,
+                "expected_recovery_value": 529000,
+                "probability": 0.547,
+                "risk_level": "MEDIUM"
+              },
+              {
+                "action": "RETRY_NOW",
+                "breakdown": {
+                  "action": "RETRY_NOW",
+                  "customer_friction_penalty": 2000,
+                  "expected_recovery_value": 345500,
+                  "gross_expected_recovery": 348000,
+                  "intervention_cost": 500,
+                  "payment_amount": 1000000,
+                  "recovery_probability": 0.348
+                },
+                "confidence": 1.0,
+                "expected_recovery_value": 345500,
+                "probability": 0.348,
+                "risk_level": "LOW"
+              }
+            ],
+            "risk_level": "LOW",
+            "selected_action": "RETRY_LATER"
+          },
+          "ended_at": "2026-01-01T13:00:00",
+          "entry_state": "DETECTED",
+          "execution": {
+            "action": "RETRY_LATER",
+            "executed_at": "2026-01-01T13:00:00",
+            "provider_response": {
+              "note": "No charge attempted. The retry becomes due when simulation time reaches scheduled_at.",
+              "outcome": "scheduled",
+              "provider": "payment_simulator",
+              "scheduled_at": "2026-01-01T13:15:00",
+              "simulated": true
+            },
+            "status": "SCHEDULED"
+          },
+          "final_status": "SCHEDULED",
+          "outcome": null,
+          "policy": {
+            "outcome": "APPROVED",
+            "reason": "RETRY_LATER is within all configured safety limits: 1 of 2 retries used, amount 1000000 within the automatic threshold of 5000000, and the failure cause (BANK_TIMEOUT) is known.",
+            "rule_id": "default_approve"
+          },
+          "recovered_amount": 0,
+          "run_index": 0,
+          "selected_action": "RETRY_LATER",
+          "stages": [
+            "context",
+            "diagnosis",
+            "candidates",
+            "decision",
+            "policy",
+            "scheduled"
+          ],
+          "started_at": "2026-01-01T13:00:00",
+          "state": "SCHEDULED",
+          "waiting_until": "2026-01-01T13:15:00"
+        },
+        {
+          "currency": "INR",
+          "decision": null,
+          "ended_at": "2026-01-01T13:15:00",
+          "entry_state": "SCHEDULED",
+          "execution": {
+            "action": "RETRY_LATER",
+            "executed_at": "2026-01-01T13:15:00",
+            "provider_response": {
+              "attempt_number": 2,
+              "channel": "direct_charge",
+              "decision_basis": "scripted",
+              "failure_reason": "BANK_TIMEOUT",
+              "note": "Deterministic scenario behaviour required by the specification (synthetic demonstration value).",
+              "outcome": "succeeded",
+              "payment_touched": true,
+              "provider": "payment_simulator",
+              "scripted_outcome": "ALWAYS_SUCCEED",
+              "simulated": true
+            },
+            "status": "SUCCEEDED"
+          },
+          "final_status": "RECOVERED",
+          "outcome": {
+            "failure_reason": null,
+            "new_payment_status": "SUCCEEDED",
+            "previous_payment_status": "FAILED",
+            "recovered": true,
+            "recovered_amount": 1000000,
+            "verification_timestamp": "2026-01-01T13:15:00"
+          },
+          "policy": null,
+          "recovered_amount": 1000000,
+          "run_index": 1,
+          "selected_action": "RETRY_LATER",
+          "stages": [
+            "scheduling_check",
+            "execution",
+            "verification"
+          ],
+          "started_at": "2026-01-01T13:15:00",
+          "state": "RECOVERED",
+          "waiting_until": null
+        }
+      ],
+      "terminal_outcome": {
+        "action": "RETRY_LATER",
+        "recovered": true,
+        "recovered_amount": 1000000,
+        "verified_at": "2026-01-01T13:15:00"
+      }
+    },
+    "B": {
+      "amount_at_risk": 250000,
+      "audit_events": [
+        {
+          "event_type": "REVENUE_RISK_DETECTED",
+          "sequence": 1,
+          "stage": "DETECTION",
+          "timestamp": "2026-01-01T13:00:00"
+        },
+        {
+          "event_type": "DIAGNOSIS_COMPLETED",
+          "sequence": 2,
+          "stage": "DIAGNOSIS",
+          "timestamp": "2026-01-01T13:00:00"
+        },
+        {
+          "event_type": "RECOVERY_OPTIONS_EVALUATED",
+          "sequence": 3,
+          "stage": "EVALUATION",
+          "timestamp": "2026-01-01T13:00:00"
+        },
+        {
+          "event_type": "RECOVERY_DECISION_SELECTED",
+          "sequence": 4,
+          "stage": "DECISION",
+          "timestamp": "2026-01-01T13:00:00"
+        },
+        {
+          "event_type": "POLICY_BLOCKED",
+          "sequence": 5,
+          "stage": "POLICY",
+          "timestamp": "2026-01-01T13:00:00"
+        },
+        {
+          "event_type": "WORKFLOW_STOPPED",
+          "sequence": 6,
+          "stage": "COMPLETION",
+          "timestamp": "2026-01-01T13:00:00"
+        }
+      ],
+      "case_id": "case_demo_b",
+      "clock_advances": 0,
+      "diagnosis": {
+        "category": "TIME_DEPENDENT",
+        "explanation": "The account lacked sufficient balance. Whether a retry succeeds depends on when the customer's balance is replenished, so timing matters more than attempt count. This payment has already been attempted 2 times.",
+        "failure_reason": "INSUFFICIENT_FUNDS",
+        "requires_escalation": false,
+        "transience": "TRANSIENT"
+      },
+      "final_state": "STOPPED",
+      "payment_id": "pay_demo_b",
+      "runs": [
+        {
+          "currency": "INR",
+          "decision": {
+            "breakdown": {
+              "action": "RETRY_LATER",
+              "customer_friction_penalty": 10000,
+              "expected_recovery_value": 51250,
+              "gross_expected_recovery": 63250,
+              "intervention_cost": 2000,
+              "payment_amount": 250000,
+              "recovery_probability": 0.253
+            },
+            "confidence": 1.0,
+            "expected_recovery_value": 51250,
+            "explanation": {
+              "alternatives": [
+                {
+                  "action": "SEND_REMINDER",
+                  "expected_recovery_value": 40250,
+                  "probability": 0.197
+                },
+                {
+                  "action": "SEND_PAYMENT_LINK",
+                  "expected_recovery_value": 38250,
+                  "probability": 0.225
+                }
+              ],
+              "confidence": 1.0,
+              "expected_recovery_value": 51250,
+              "probability": 0.253,
+              "reason": "RETRY_LATER was selected because it has the highest expected recovery value (51250 INR minor units) among the 3 evaluated candidate action(s). It beats SEND_REMINDER by 11000 minor units, driven by a recovery probability of 0.253 against 0.197.",
+              "selected_action": "RETRY_LATER"
+            },
+            "model_version": "deterministic-scorer-v1",
+            "probability": 0.253,
+            "ranked": [
+              {
+                "action": "RETRY_LATER",
+                "breakdown": {
+                  "action": "RETRY_LATER",
+                  "customer_friction_penalty": 10000,
+                  "expected_recovery_value": 51250,
+                  "gross_expected_recovery": 63250,
+                  "intervention_cost": 2000,
+                  "payment_amount": 250000,
+                  "recovery_probability": 0.253
+                },
+                "confidence": 1.0,
+                "expected_recovery_value": 51250,
+                "probability": 0.253,
+                "risk_level": "LOW"
+              },
+              {
+                "action": "SEND_REMINDER",
+                "breakdown": {
+                  "action": "SEND_REMINDER",
+                  "customer_friction_penalty": 8000,
+                  "expected_recovery_value": 40250,
+                  "gross_expected_recovery": 49250,
+                  "intervention_cost": 1000,
+                  "payment_amount": 250000,
+                  "recovery_probability": 0.197
+                },
+                "confidence": 1.0,
+                "expected_recovery_value": 40250,
+                "probability": 0.197,
+                "risk_level": "MEDIUM"
+              },
+              {
+                "action": "SEND_PAYMENT_LINK",
+                "breakdown": {
+                  "action": "SEND_PAYMENT_LINK",
+                  "customer_friction_penalty": 15000,
+                  "expected_recovery_value": 38250,
+                  "gross_expected_recovery": 56250,
+                  "intervention_cost": 3000,
+                  "payment_amount": 250000,
+                  "recovery_probability": 0.225
+                },
+                "confidence": 1.0,
+                "expected_recovery_value": 38250,
+                "probability": 0.225,
+                "risk_level": "MEDIUM"
+              }
+            ],
+            "risk_level": "LOW",
+            "selected_action": "RETRY_LATER"
+          },
+          "ended_at": "2026-01-01T13:00:00",
+          "entry_state": "DETECTED",
+          "execution": null,
+          "final_status": "STOPPED",
+          "outcome": null,
+          "policy": {
+            "outcome": "BLOCKED",
+            "reason": "Payment has 2 recorded attempt(s), reaching the configured maximum of 2 automatic retries. RETRY_LATER would exceed the retry budget, so recovery stops.",
+            "rule_id": "retry_limit_reached"
+          },
+          "recovered_amount": 0,
+          "run_index": 0,
+          "selected_action": "RETRY_LATER",
+          "stages": [
+            "context",
+            "diagnosis",
+            "candidates",
+            "decision",
+            "policy",
+            "stopped"
+          ],
+          "started_at": "2026-01-01T13:00:00",
+          "state": "STOPPED",
+          "waiting_until": null
+        }
+      ],
+      "terminal_outcome": {
+        "reason": "Payment has 2 recorded attempt(s), reaching the configured maximum of 2 automatic retries. RETRY_LATER would exceed the retry budget, so recovery stops.",
+        "recovered": false,
+        "stopped_by_rule": "retry_limit_reached"
+      }
+    },
+    "C": {
+      "amount_at_risk": 9000000,
+      "audit_events": [
+        {
+          "event_type": "REVENUE_RISK_DETECTED",
+          "sequence": 1,
+          "stage": "DETECTION",
+          "timestamp": "2026-01-01T13:00:00"
+        },
+        {
+          "event_type": "DIAGNOSIS_COMPLETED",
+          "sequence": 2,
+          "stage": "DIAGNOSIS",
+          "timestamp": "2026-01-01T13:00:00"
+        },
+        {
+          "event_type": "RECOVERY_OPTIONS_EVALUATED",
+          "sequence": 3,
+          "stage": "EVALUATION",
+          "timestamp": "2026-01-01T13:00:00"
+        },
+        {
+          "event_type": "RECOVERY_DECISION_SELECTED",
+          "sequence": 4,
+          "stage": "DECISION",
+          "timestamp": "2026-01-01T13:00:00"
+        },
+        {
+          "event_type": "POLICY_ESCALATED",
+          "sequence": 5,
+          "stage": "POLICY",
+          "timestamp": "2026-01-01T13:00:00"
+        }
+      ],
+      "case_id": "case_demo_c",
+      "clock_advances": 0,
+      "diagnosis": {
+        "category": "TRANSIENT",
+        "explanation": "The issuing bank did not respond in time. This is transient infrastructure behaviour, so the same instrument usually succeeds on a later attempt.",
+        "failure_reason": "BANK_TIMEOUT",
+        "requires_escalation": false,
+        "transience": "TRANSIENT"
+      },
+      "final_state": "ESCALATED",
+      "payment_id": "pay_demo_c",
+      "runs": [
+        {
+          "currency": "INR",
+          "decision": {
+            "breakdown": {
+              "action": "RETRY_LATER",
+              "customer_friction_penalty": 10000,
+              "expected_recovery_value": 6909000,
+              "gross_expected_recovery": 6921000,
+              "intervention_cost": 2000,
+              "payment_amount": 9000000,
+              "recovery_probability": 0.769
+            },
+            "confidence": 1.0,
+            "expected_recovery_value": 6909000,
+            "explanation": {
+              "alternatives": [
+                {
+                  "action": "SEND_PAYMENT_LINK",
+                  "expected_recovery_value": 4860000,
+                  "probability": 0.542
+                },
+                {
+                  "action": "RETRY_NOW",
+                  "expected_recovery_value": 3102500,
+                  "probability": 0.345
+                }
+              ],
+              "confidence": 1.0,
+              "expected_recovery_value": 6909000,
+              "probability": 0.769,
+              "reason": "RETRY_LATER was selected because it has the highest expected recovery value (6909000 INR minor units) among the 3 evaluated candidate action(s). It beats SEND_PAYMENT_LINK by 2049000 minor units, driven by a recovery probability of 0.769 against 0.542.",
+              "selected_action": "RETRY_LATER"
+            },
+            "model_version": "deterministic-scorer-v1",
+            "probability": 0.769,
+            "ranked": [
+              {
+                "action": "RETRY_LATER",
+                "breakdown": {
+                  "action": "RETRY_LATER",
+                  "customer_friction_penalty": 10000,
+                  "expected_recovery_value": 6909000,
+                  "gross_expected_recovery": 6921000,
+                  "intervention_cost": 2000,
+                  "payment_amount": 9000000,
+                  "recovery_probability": 0.769
+                },
+                "confidence": 1.0,
+                "expected_recovery_value": 6909000,
+                "probability": 0.769,
+                "risk_level": "HIGH"
+              },
+              {
+                "action": "SEND_PAYMENT_LINK",
+                "breakdown": {
+                  "action": "SEND_PAYMENT_LINK",
+                  "customer_friction_penalty": 15000,
+                  "expected_recovery_value": 4860000,
+                  "gross_expected_recovery": 4878000,
+                  "intervention_cost": 3000,
+                  "payment_amount": 9000000,
+                  "recovery_probability": 0.542
+                },
+                "confidence": 1.0,
+                "expected_recovery_value": 4860000,
+                "probability": 0.542,
+                "risk_level": "HIGH"
+              },
+              {
+                "action": "RETRY_NOW",
+                "breakdown": {
+                  "action": "RETRY_NOW",
+                  "customer_friction_penalty": 2000,
+                  "expected_recovery_value": 3102500,
+                  "gross_expected_recovery": 3105000,
+                  "intervention_cost": 500,
+                  "payment_amount": 9000000,
+                  "recovery_probability": 0.345
+                },
+                "confidence": 1.0,
+                "expected_recovery_value": 3102500,
+                "probability": 0.345,
+                "risk_level": "HIGH"
+              }
+            ],
+            "risk_level": "HIGH",
+            "selected_action": "RETRY_LATER"
+          },
+          "ended_at": "2026-01-01T13:00:00",
+          "entry_state": "DETECTED",
+          "execution": null,
+          "final_status": "ESCALATED",
+          "outcome": null,
+          "policy": {
+            "outcome": "ESCALATED",
+            "reason": "Payment amount 9000000 INR minor units exceeds the automatic recovery threshold of 5000000. A human approves recovery at this value rather than the system acting alone.",
+            "rule_id": "high_value_transaction"
+          },
+          "recovered_amount": 0,
+          "run_index": 0,
+          "selected_action": "RETRY_LATER",
+          "stages": [
+            "context",
+            "diagnosis",
+            "candidates",
+            "decision",
+            "policy",
+            "escalated"
+          ],
+          "started_at": "2026-01-01T13:00:00",
+          "state": "ESCALATED",
+          "waiting_until": null
+        }
+      ],
+      "terminal_outcome": {
+        "escalated_by_rule": "high_value_transaction",
+        "reason": "Payment amount 9000000 INR minor units exceeds the automatic recovery threshold of 5000000. A human approves recovery at this value rather than the system acting alone.",
+        "recovered": false
+      }
+    },
+    "D": {
+      "amount_at_risk": 600000,
+      "audit_events": [
+        {
+          "event_type": "REVENUE_RISK_DETECTED",
+          "sequence": 1,
+          "stage": "DETECTION",
+          "timestamp": "2026-01-01T13:00:00"
+        },
+        {
+          "event_type": "DIAGNOSIS_COMPLETED",
+          "sequence": 2,
+          "stage": "DIAGNOSIS",
+          "timestamp": "2026-01-01T13:00:00"
+        },
+        {
+          "event_type": "RECOVERY_OPTIONS_EVALUATED",
+          "sequence": 3,
+          "stage": "EVALUATION",
+          "timestamp": "2026-01-01T13:00:00"
+        },
+        {
+          "event_type": "RECOVERY_DECISION_SELECTED",
+          "sequence": 4,
+          "stage": "DECISION",
+          "timestamp": "2026-01-01T13:00:00"
+        },
+        {
+          "event_type": "POLICY_APPROVED",
+          "sequence": 5,
+          "stage": "POLICY",
+          "timestamp": "2026-01-01T13:00:00"
+        },
+        {
+          "event_type": "ACTION_EXECUTED",
+          "sequence": 6,
+          "stage": "EXECUTION",
+          "timestamp": "2026-01-01T13:00:00"
+        },
+        {
+          "event_type": "OUTCOME_VERIFIED",
+          "sequence": 7,
+          "stage": "VERIFICATION",
+          "timestamp": "2026-01-01T13:00:00"
+        },
+        {
+          "event_type": "REVENUE_RECOVERED",
+          "sequence": 8,
+          "stage": "VERIFICATION",
+          "timestamp": "2026-01-01T13:00:00"
+        }
+      ],
+      "case_id": "case_demo_d",
+      "clock_advances": 0,
+      "diagnosis": {
+        "category": "CUSTOMER_ACTION",
+        "explanation": "The card is expired. Retrying the same instrument cannot succeed; recovery requires the customer to supply different payment details.",
+        "failure_reason": "EXPIRED_CARD",
+        "requires_escalation": false,
+        "transience": "PERSISTENT"
+      },
+      "final_state": "RECOVERED",
+      "payment_id": "pay_demo_d",
+      "runs": [
+        {
+          "currency": "INR",
+          "decision": {
+            "breakdown": {
+              "action": "CHANGE_PAYMENT_METHOD",
+              "customer_friction_penalty": 20000,
+              "expected_recovery_value": 407200,
+              "gross_expected_recovery": 430200,
+              "intervention_cost": 3000,
+              "payment_amount": 600000,
+              "recovery_probability": 0.717
+            },
+            "confidence": 1.0,
+            "expected_recovery_value": 407200,
+            "explanation": {
+              "alternatives": [
+                {
+                  "action": "SEND_PAYMENT_LINK",
+                  "expected_recovery_value": 328200,
+                  "probability": 0.577
+                },
+                {
+                  "action": "ESCALATE_HUMAN",
+                  "expected_recovery_value": 129400,
+                  "probability": 0.299
+                }
+              ],
+              "confidence": 1.0,
+              "expected_recovery_value": 407200,
+              "probability": 0.717,
+              "reason": "CHANGE_PAYMENT_METHOD was selected because it has the highest expected recovery value (407200 INR minor units) among the 3 evaluated candidate action(s). It beats SEND_PAYMENT_LINK by 79000 minor units, driven by a recovery probability of 0.717 against 0.577.",
+              "selected_action": "CHANGE_PAYMENT_METHOD"
+            },
+            "model_version": "deterministic-scorer-v1",
+            "probability": 0.717,
+            "ranked": [
+              {
+                "action": "CHANGE_PAYMENT_METHOD",
+                "breakdown": {
+                  "action": "CHANGE_PAYMENT_METHOD",
+                  "customer_friction_penalty": 20000,
+                  "expected_recovery_value": 407200,
+                  "gross_expected_recovery": 430200,
+                  "intervention_cost": 3000,
+                  "payment_amount": 600000,
+                  "recovery_probability": 0.717
+                },
+                "confidence": 1.0,
+                "expected_recovery_value": 407200,
+                "probability": 0.717,
+                "risk_level": "LOW"
+              },
+              {
+                "action": "SEND_PAYMENT_LINK",
+                "breakdown": {
+                  "action": "SEND_PAYMENT_LINK",
+                  "customer_friction_penalty": 15000,
+                  "expected_recovery_value": 328200,
+                  "gross_expected_recovery": 346200,
+                  "intervention_cost": 3000,
+                  "payment_amount": 600000,
+                  "recovery_probability": 0.577
+                },
+                "confidence": 1.0,
+                "expected_recovery_value": 328200,
+                "probability": 0.577,
+                "risk_level": "MEDIUM"
+              },
+              {
+                "action": "ESCALATE_HUMAN",
+                "breakdown": {
+                  "action": "ESCALATE_HUMAN",
+                  "customer_friction_penalty": 0,
+                  "expected_recovery_value": 129400,
+                  "gross_expected_recovery": 179400,
+                  "intervention_cost": 50000,
+                  "payment_amount": 600000,
+                  "recovery_probability": 0.299
+                },
+                "confidence": 1.0,
+                "expected_recovery_value": 129400,
+                "probability": 0.299,
+                "risk_level": "LOW"
+              }
+            ],
+            "risk_level": "LOW",
+            "selected_action": "CHANGE_PAYMENT_METHOD"
+          },
+          "ended_at": "2026-01-01T13:00:00",
+          "entry_state": "DETECTED",
+          "execution": {
+            "action": "CHANGE_PAYMENT_METHOD",
+            "executed_at": "2026-01-01T13:00:00",
+            "provider_response": {
+              "attempt_number": 2,
+              "channel": "direct_charge",
+              "decision_basis": "scripted",
+              "failure_reason": "EXPIRED_CARD",
+              "note": "Deterministic scenario behaviour required by the specification (synthetic demonstration value).",
+              "outcome": "succeeded",
+              "payment_touched": true,
+              "provider": "payment_simulator",
+              "scripted_outcome": "ALWAYS_SUCCEED",
+              "simulated": true
+            },
+            "status": "SUCCEEDED"
+          },
+          "final_status": "RECOVERED",
+          "outcome": {
+            "failure_reason": null,
+            "new_payment_status": "SUCCEEDED",
+            "previous_payment_status": "FAILED",
+            "recovered": true,
+            "recovered_amount": 600000,
+            "verification_timestamp": "2026-01-01T13:00:00"
+          },
+          "policy": {
+            "outcome": "APPROVED",
+            "reason": "CHANGE_PAYMENT_METHOD is within all configured safety limits: 1 of 2 retries used, amount 600000 within the automatic threshold of 5000000, and the failure cause (EXPIRED_CARD) is known.",
+            "rule_id": "default_approve"
+          },
+          "recovered_amount": 600000,
+          "run_index": 0,
+          "selected_action": "CHANGE_PAYMENT_METHOD",
+          "stages": [
+            "context",
+            "diagnosis",
+            "candidates",
+            "decision",
+            "policy",
+            "execution",
+            "verification"
+          ],
+          "started_at": "2026-01-01T13:00:00",
+          "state": "RECOVERED",
+          "waiting_until": null
+        }
+      ],
+      "terminal_outcome": {
+        "action": "CHANGE_PAYMENT_METHOD",
+        "recovered": true,
+        "recovered_amount": 600000,
+        "verified_at": "2026-01-01T13:00:00"
+      }
+    }
+  },
+  "schema_version": 1,
+  "simulator": {
+    "BANK_TIMEOUT:CHANGE_PAYMENT_METHOD:1": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.432524,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "BANK_TIMEOUT:CHANGE_PAYMENT_METHOD:2": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.168619,
+      "seed": 20260101,
+      "succeeded": true,
+      "success_threshold": 0.3
+    },
+    "BANK_TIMEOUT:CHANGE_PAYMENT_METHOD:3": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.135878,
+      "seed": 20260101,
+      "succeeded": true,
+      "success_threshold": 0.3
+    },
+    "BANK_TIMEOUT:ESCALATE_HUMAN:1": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.790042,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "BANK_TIMEOUT:ESCALATE_HUMAN:2": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.434066,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "BANK_TIMEOUT:ESCALATE_HUMAN:3": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.679653,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "BANK_TIMEOUT:RETRY_LATER:1": {
+      "decision_basis": "scripted",
+      "scripted_outcome": "ALWAYS_SUCCEED",
+      "succeeded": true
+    },
+    "BANK_TIMEOUT:RETRY_LATER:2": {
+      "decision_basis": "scripted",
+      "scripted_outcome": "ALWAYS_SUCCEED",
+      "succeeded": true
+    },
+    "BANK_TIMEOUT:RETRY_LATER:3": {
+      "decision_basis": "scripted",
+      "scripted_outcome": "ALWAYS_SUCCEED",
+      "succeeded": true
+    },
+    "BANK_TIMEOUT:RETRY_NOW:1": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.755613,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.35
+    },
+    "BANK_TIMEOUT:RETRY_NOW:2": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.157996,
+      "seed": 20260101,
+      "succeeded": true,
+      "success_threshold": 0.35
+    },
+    "BANK_TIMEOUT:RETRY_NOW:3": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.622158,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.35
+    },
+    "BANK_TIMEOUT:SEND_PAYMENT_LINK:1": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.81462,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.55
+    },
+    "BANK_TIMEOUT:SEND_PAYMENT_LINK:2": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.556319,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.55
+    },
+    "BANK_TIMEOUT:SEND_PAYMENT_LINK:3": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.122673,
+      "seed": 20260101,
+      "succeeded": true,
+      "success_threshold": 0.55
+    },
+    "BANK_TIMEOUT:SEND_REMINDER:1": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.861213,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "BANK_TIMEOUT:SEND_REMINDER:2": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.163952,
+      "seed": 20260101,
+      "succeeded": true,
+      "success_threshold": 0.3
+    },
+    "BANK_TIMEOUT:SEND_REMINDER:3": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.613689,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "BANK_TIMEOUT:STOP:1": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.558518,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "BANK_TIMEOUT:STOP:2": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.827603,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "BANK_TIMEOUT:STOP:3": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.222608,
+      "seed": 20260101,
+      "succeeded": true,
+      "success_threshold": 0.3
+    },
+    "CHECKOUT_ABANDONMENT:CHANGE_PAYMENT_METHOD:1": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.432524,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "CHECKOUT_ABANDONMENT:CHANGE_PAYMENT_METHOD:2": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.168619,
+      "seed": 20260101,
+      "succeeded": true,
+      "success_threshold": 0.3
+    },
+    "CHECKOUT_ABANDONMENT:CHANGE_PAYMENT_METHOD:3": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.135878,
+      "seed": 20260101,
+      "succeeded": true,
+      "success_threshold": 0.3
+    },
+    "CHECKOUT_ABANDONMENT:ESCALATE_HUMAN:1": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.790042,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "CHECKOUT_ABANDONMENT:ESCALATE_HUMAN:2": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.434066,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "CHECKOUT_ABANDONMENT:ESCALATE_HUMAN:3": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.679653,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "CHECKOUT_ABANDONMENT:RETRY_LATER:1": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.010971,
+      "seed": 20260101,
+      "succeeded": true,
+      "success_threshold": 0.3
+    },
+    "CHECKOUT_ABANDONMENT:RETRY_LATER:2": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.438111,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "CHECKOUT_ABANDONMENT:RETRY_LATER:3": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.056041,
+      "seed": 20260101,
+      "succeeded": true,
+      "success_threshold": 0.3
+    },
+    "CHECKOUT_ABANDONMENT:RETRY_NOW:1": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.755613,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "CHECKOUT_ABANDONMENT:RETRY_NOW:2": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.157996,
+      "seed": 20260101,
+      "succeeded": true,
+      "success_threshold": 0.3
+    },
+    "CHECKOUT_ABANDONMENT:RETRY_NOW:3": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.622158,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "CHECKOUT_ABANDONMENT:SEND_PAYMENT_LINK:1": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.81462,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.45
+    },
+    "CHECKOUT_ABANDONMENT:SEND_PAYMENT_LINK:2": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.556319,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.45
+    },
+    "CHECKOUT_ABANDONMENT:SEND_PAYMENT_LINK:3": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.122673,
+      "seed": 20260101,
+      "succeeded": true,
+      "success_threshold": 0.45
+    },
+    "CHECKOUT_ABANDONMENT:SEND_REMINDER:1": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.861213,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "CHECKOUT_ABANDONMENT:SEND_REMINDER:2": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.163952,
+      "seed": 20260101,
+      "succeeded": true,
+      "success_threshold": 0.3
+    },
+    "CHECKOUT_ABANDONMENT:SEND_REMINDER:3": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.613689,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "CHECKOUT_ABANDONMENT:STOP:1": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.558518,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "CHECKOUT_ABANDONMENT:STOP:2": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.827603,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "CHECKOUT_ABANDONMENT:STOP:3": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.222608,
+      "seed": 20260101,
+      "succeeded": true,
+      "success_threshold": 0.3
+    },
+    "EXPIRED_CARD:CHANGE_PAYMENT_METHOD:1": {
+      "decision_basis": "scripted",
+      "scripted_outcome": "ALWAYS_SUCCEED",
+      "succeeded": true
+    },
+    "EXPIRED_CARD:CHANGE_PAYMENT_METHOD:2": {
+      "decision_basis": "scripted",
+      "scripted_outcome": "ALWAYS_SUCCEED",
+      "succeeded": true
+    },
+    "EXPIRED_CARD:CHANGE_PAYMENT_METHOD:3": {
+      "decision_basis": "scripted",
+      "scripted_outcome": "ALWAYS_SUCCEED",
+      "succeeded": true
+    },
+    "EXPIRED_CARD:ESCALATE_HUMAN:1": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.790042,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "EXPIRED_CARD:ESCALATE_HUMAN:2": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.434066,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "EXPIRED_CARD:ESCALATE_HUMAN:3": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.679653,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "EXPIRED_CARD:RETRY_LATER:1": {
+      "decision_basis": "scripted",
+      "scripted_outcome": "ALWAYS_FAIL",
+      "succeeded": false
+    },
+    "EXPIRED_CARD:RETRY_LATER:2": {
+      "decision_basis": "scripted",
+      "scripted_outcome": "ALWAYS_FAIL",
+      "succeeded": false
+    },
+    "EXPIRED_CARD:RETRY_LATER:3": {
+      "decision_basis": "scripted",
+      "scripted_outcome": "ALWAYS_FAIL",
+      "succeeded": false
+    },
+    "EXPIRED_CARD:RETRY_NOW:1": {
+      "decision_basis": "scripted",
+      "scripted_outcome": "ALWAYS_FAIL",
+      "succeeded": false
+    },
+    "EXPIRED_CARD:RETRY_NOW:2": {
+      "decision_basis": "scripted",
+      "scripted_outcome": "ALWAYS_FAIL",
+      "succeeded": false
+    },
+    "EXPIRED_CARD:RETRY_NOW:3": {
+      "decision_basis": "scripted",
+      "scripted_outcome": "ALWAYS_FAIL",
+      "succeeded": false
+    },
+    "EXPIRED_CARD:SEND_PAYMENT_LINK:1": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.81462,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.58
+    },
+    "EXPIRED_CARD:SEND_PAYMENT_LINK:2": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.556319,
+      "seed": 20260101,
+      "succeeded": true,
+      "success_threshold": 0.58
+    },
+    "EXPIRED_CARD:SEND_PAYMENT_LINK:3": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.122673,
+      "seed": 20260101,
+      "succeeded": true,
+      "success_threshold": 0.58
+    },
+    "EXPIRED_CARD:SEND_REMINDER:1": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.861213,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "EXPIRED_CARD:SEND_REMINDER:2": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.163952,
+      "seed": 20260101,
+      "succeeded": true,
+      "success_threshold": 0.3
+    },
+    "EXPIRED_CARD:SEND_REMINDER:3": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.613689,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "EXPIRED_CARD:STOP:1": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.558518,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "EXPIRED_CARD:STOP:2": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.827603,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "EXPIRED_CARD:STOP:3": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.222608,
+      "seed": 20260101,
+      "succeeded": true,
+      "success_threshold": 0.3
+    },
+    "INSUFFICIENT_FUNDS:CHANGE_PAYMENT_METHOD:1": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.432524,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "INSUFFICIENT_FUNDS:CHANGE_PAYMENT_METHOD:2": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.168619,
+      "seed": 20260101,
+      "succeeded": true,
+      "success_threshold": 0.3
+    },
+    "INSUFFICIENT_FUNDS:CHANGE_PAYMENT_METHOD:3": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.135878,
+      "seed": 20260101,
+      "succeeded": true,
+      "success_threshold": 0.3
+    },
+    "INSUFFICIENT_FUNDS:ESCALATE_HUMAN:1": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.790042,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "INSUFFICIENT_FUNDS:ESCALATE_HUMAN:2": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.434066,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "INSUFFICIENT_FUNDS:ESCALATE_HUMAN:3": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.679653,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "INSUFFICIENT_FUNDS:RETRY_LATER:1": {
+      "decision_basis": "scripted",
+      "scripted_outcome": "ALWAYS_FAIL",
+      "succeeded": false
+    },
+    "INSUFFICIENT_FUNDS:RETRY_LATER:2": {
+      "decision_basis": "scripted",
+      "scripted_outcome": "ALWAYS_FAIL",
+      "succeeded": false
+    },
+    "INSUFFICIENT_FUNDS:RETRY_LATER:3": {
+      "decision_basis": "scripted",
+      "scripted_outcome": "ALWAYS_FAIL",
+      "succeeded": false
+    },
+    "INSUFFICIENT_FUNDS:RETRY_NOW:1": {
+      "decision_basis": "scripted",
+      "scripted_outcome": "ALWAYS_FAIL",
+      "succeeded": false
+    },
+    "INSUFFICIENT_FUNDS:RETRY_NOW:2": {
+      "decision_basis": "scripted",
+      "scripted_outcome": "ALWAYS_FAIL",
+      "succeeded": false
+    },
+    "INSUFFICIENT_FUNDS:RETRY_NOW:3": {
+      "decision_basis": "scripted",
+      "scripted_outcome": "ALWAYS_FAIL",
+      "succeeded": false
+    },
+    "INSUFFICIENT_FUNDS:SEND_PAYMENT_LINK:1": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.81462,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.4
+    },
+    "INSUFFICIENT_FUNDS:SEND_PAYMENT_LINK:2": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.556319,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.4
+    },
+    "INSUFFICIENT_FUNDS:SEND_PAYMENT_LINK:3": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.122673,
+      "seed": 20260101,
+      "succeeded": true,
+      "success_threshold": 0.4
+    },
+    "INSUFFICIENT_FUNDS:SEND_REMINDER:1": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.861213,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.35
+    },
+    "INSUFFICIENT_FUNDS:SEND_REMINDER:2": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.163952,
+      "seed": 20260101,
+      "succeeded": true,
+      "success_threshold": 0.35
+    },
+    "INSUFFICIENT_FUNDS:SEND_REMINDER:3": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.613689,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.35
+    },
+    "INSUFFICIENT_FUNDS:STOP:1": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.558518,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "INSUFFICIENT_FUNDS:STOP:2": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.827603,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "INSUFFICIENT_FUNDS:STOP:3": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.222608,
+      "seed": 20260101,
+      "succeeded": true,
+      "success_threshold": 0.3
+    },
+    "NETWORK_ERROR:CHANGE_PAYMENT_METHOD:1": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.432524,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "NETWORK_ERROR:CHANGE_PAYMENT_METHOD:2": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.168619,
+      "seed": 20260101,
+      "succeeded": true,
+      "success_threshold": 0.3
+    },
+    "NETWORK_ERROR:CHANGE_PAYMENT_METHOD:3": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.135878,
+      "seed": 20260101,
+      "succeeded": true,
+      "success_threshold": 0.3
+    },
+    "NETWORK_ERROR:ESCALATE_HUMAN:1": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.790042,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "NETWORK_ERROR:ESCALATE_HUMAN:2": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.434066,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "NETWORK_ERROR:ESCALATE_HUMAN:3": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.679653,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "NETWORK_ERROR:RETRY_LATER:1": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.010971,
+      "seed": 20260101,
+      "succeeded": true,
+      "success_threshold": 0.75
+    },
+    "NETWORK_ERROR:RETRY_LATER:2": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.438111,
+      "seed": 20260101,
+      "succeeded": true,
+      "success_threshold": 0.75
+    },
+    "NETWORK_ERROR:RETRY_LATER:3": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.056041,
+      "seed": 20260101,
+      "succeeded": true,
+      "success_threshold": 0.75
+    },
+    "NETWORK_ERROR:RETRY_NOW:1": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.755613,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.6
+    },
+    "NETWORK_ERROR:RETRY_NOW:2": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.157996,
+      "seed": 20260101,
+      "succeeded": true,
+      "success_threshold": 0.6
+    },
+    "NETWORK_ERROR:RETRY_NOW:3": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.622158,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.6
+    },
+    "NETWORK_ERROR:SEND_PAYMENT_LINK:1": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.81462,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "NETWORK_ERROR:SEND_PAYMENT_LINK:2": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.556319,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "NETWORK_ERROR:SEND_PAYMENT_LINK:3": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.122673,
+      "seed": 20260101,
+      "succeeded": true,
+      "success_threshold": 0.3
+    },
+    "NETWORK_ERROR:SEND_REMINDER:1": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.861213,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "NETWORK_ERROR:SEND_REMINDER:2": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.163952,
+      "seed": 20260101,
+      "succeeded": true,
+      "success_threshold": 0.3
+    },
+    "NETWORK_ERROR:SEND_REMINDER:3": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.613689,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "NETWORK_ERROR:STOP:1": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.558518,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "NETWORK_ERROR:STOP:2": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.827603,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "NETWORK_ERROR:STOP:3": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.222608,
+      "seed": 20260101,
+      "succeeded": true,
+      "success_threshold": 0.3
+    },
+    "SUBSCRIPTION_FAILURE:CHANGE_PAYMENT_METHOD:1": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.432524,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "SUBSCRIPTION_FAILURE:CHANGE_PAYMENT_METHOD:2": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.168619,
+      "seed": 20260101,
+      "succeeded": true,
+      "success_threshold": 0.3
+    },
+    "SUBSCRIPTION_FAILURE:CHANGE_PAYMENT_METHOD:3": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.135878,
+      "seed": 20260101,
+      "succeeded": true,
+      "success_threshold": 0.3
+    },
+    "SUBSCRIPTION_FAILURE:ESCALATE_HUMAN:1": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.790042,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "SUBSCRIPTION_FAILURE:ESCALATE_HUMAN:2": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.434066,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "SUBSCRIPTION_FAILURE:ESCALATE_HUMAN:3": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.679653,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "SUBSCRIPTION_FAILURE:RETRY_LATER:1": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.010971,
+      "seed": 20260101,
+      "succeeded": true,
+      "success_threshold": 0.62
+    },
+    "SUBSCRIPTION_FAILURE:RETRY_LATER:2": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.438111,
+      "seed": 20260101,
+      "succeeded": true,
+      "success_threshold": 0.62
+    },
+    "SUBSCRIPTION_FAILURE:RETRY_LATER:3": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.056041,
+      "seed": 20260101,
+      "succeeded": true,
+      "success_threshold": 0.62
+    },
+    "SUBSCRIPTION_FAILURE:RETRY_NOW:1": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.755613,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "SUBSCRIPTION_FAILURE:RETRY_NOW:2": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.157996,
+      "seed": 20260101,
+      "succeeded": true,
+      "success_threshold": 0.3
+    },
+    "SUBSCRIPTION_FAILURE:RETRY_NOW:3": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.622158,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "SUBSCRIPTION_FAILURE:SEND_PAYMENT_LINK:1": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.81462,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.48
+    },
+    "SUBSCRIPTION_FAILURE:SEND_PAYMENT_LINK:2": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.556319,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.48
+    },
+    "SUBSCRIPTION_FAILURE:SEND_PAYMENT_LINK:3": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.122673,
+      "seed": 20260101,
+      "succeeded": true,
+      "success_threshold": 0.48
+    },
+    "SUBSCRIPTION_FAILURE:SEND_REMINDER:1": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.861213,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.35
+    },
+    "SUBSCRIPTION_FAILURE:SEND_REMINDER:2": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.163952,
+      "seed": 20260101,
+      "succeeded": true,
+      "success_threshold": 0.35
+    },
+    "SUBSCRIPTION_FAILURE:SEND_REMINDER:3": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.613689,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.35
+    },
+    "SUBSCRIPTION_FAILURE:STOP:1": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.558518,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "SUBSCRIPTION_FAILURE:STOP:2": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.827603,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "SUBSCRIPTION_FAILURE:STOP:3": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.222608,
+      "seed": 20260101,
+      "succeeded": true,
+      "success_threshold": 0.3
+    },
+    "UNKNOWN:CHANGE_PAYMENT_METHOD:1": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.432524,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "UNKNOWN:CHANGE_PAYMENT_METHOD:2": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.168619,
+      "seed": 20260101,
+      "succeeded": true,
+      "success_threshold": 0.3
+    },
+    "UNKNOWN:CHANGE_PAYMENT_METHOD:3": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.135878,
+      "seed": 20260101,
+      "succeeded": true,
+      "success_threshold": 0.3
+    },
+    "UNKNOWN:ESCALATE_HUMAN:1": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.790042,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "UNKNOWN:ESCALATE_HUMAN:2": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.434066,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "UNKNOWN:ESCALATE_HUMAN:3": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.679653,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "UNKNOWN:RETRY_LATER:1": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.010971,
+      "seed": 20260101,
+      "succeeded": true,
+      "success_threshold": 0.3
+    },
+    "UNKNOWN:RETRY_LATER:2": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.438111,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "UNKNOWN:RETRY_LATER:3": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.056041,
+      "seed": 20260101,
+      "succeeded": true,
+      "success_threshold": 0.3
+    },
+    "UNKNOWN:RETRY_NOW:1": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.755613,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "UNKNOWN:RETRY_NOW:2": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.157996,
+      "seed": 20260101,
+      "succeeded": true,
+      "success_threshold": 0.3
+    },
+    "UNKNOWN:RETRY_NOW:3": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.622158,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "UNKNOWN:SEND_PAYMENT_LINK:1": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.81462,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "UNKNOWN:SEND_PAYMENT_LINK:2": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.556319,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "UNKNOWN:SEND_PAYMENT_LINK:3": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.122673,
+      "seed": 20260101,
+      "succeeded": true,
+      "success_threshold": 0.3
+    },
+    "UNKNOWN:SEND_REMINDER:1": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.861213,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "UNKNOWN:SEND_REMINDER:2": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.163952,
+      "seed": 20260101,
+      "succeeded": true,
+      "success_threshold": 0.3
+    },
+    "UNKNOWN:SEND_REMINDER:3": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.613689,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "UNKNOWN:STOP:1": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.558518,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "UNKNOWN:STOP:2": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.827603,
+      "seed": 20260101,
+      "succeeded": false,
+      "success_threshold": 0.3
+    },
+    "UNKNOWN:STOP:3": {
+      "decision_basis": "seeded_draw",
+      "draw": 0.222608,
+      "seed": 20260101,
+      "succeeded": true,
+      "success_threshold": 0.3
+    }
+  }
+}

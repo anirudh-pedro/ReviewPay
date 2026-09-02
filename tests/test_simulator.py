@@ -33,26 +33,41 @@ def simulator(db, settings, clock) -> PaymentSimulatorExecutor:
 
 @pytest.fixture
 def case_for(db, clock):
-    """Persist a failed payment plus its case, and return a real context."""
+    """Persist a case for a failed payment and return a freshly built context.
+
+    Reuses the payment's open case the way ``RiskDetector`` does, so calling this
+    repeatedly for one payment models successive recovery attempts on the same
+    case rather than duplicating open cases (Requirement 10.5).
+    """
+    from sqlalchemy import select
+
     from app.core.enums import CaseState
     from app.models import RecoveryCase
 
     counter = {"n": 0}
 
     def _make(payment):
-        counter["n"] += 1
-        now = clock.now()
-        case = RecoveryCase(
-            case_id=f"case_sim_{counter['n']:04d}",
-            payment_id=payment.payment_id,
-            state=CaseState.DETECTED,
-            amount_at_risk=payment.amount,
-            created_at=now,
-            updated_at=now,
-        )
-        db.add(case)
-        db.commit()
-        return RecoveryContextBuilder(session=db, clock=clock).build(case)
+        open_case = db.execute(
+            select(RecoveryCase)
+            .where(RecoveryCase.payment_id == payment.payment_id)
+            .where(RecoveryCase.state.not_in(tuple(CaseState.terminal())))
+        ).scalars().first()
+
+        if open_case is None:
+            counter["n"] += 1
+            now = clock.now()
+            open_case = RecoveryCase(
+                case_id=f"case_sim_{counter['n']:04d}",
+                payment_id=payment.payment_id,
+                state=CaseState.DETECTED,
+                amount_at_risk=payment.amount,
+                created_at=now,
+                updated_at=now,
+            )
+            db.add(open_case)
+            db.commit()
+
+        return RecoveryContextBuilder(session=db, clock=clock).build(open_case)
 
     return _make
 

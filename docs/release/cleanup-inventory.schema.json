@@ -1,0 +1,136 @@
+{
+  "$id": "revivepay:cleanup-inventory:1",
+  "$comment": "Written against the JSON Schema draft 2020-12 vocabulary. No remote dialect URI is declared, so validation stays offline; supply the dialect in the validator.",
+  "title": "RevivePay Cleanup Inventory",
+  "description": "Reviewed cleanup candidates and their preservation evidence. Machine-readable companion to docs/release/cleanup-inventory.md; scripts/cleanup_inventory.py is the executable authority for the same contract.",
+  "type": "array",
+  "items": { "$ref": "#/$defs/candidate" },
+  "$defs": {
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidate",
+        "category",
+        "evidence_gaps",
+        "proposed_disposition",
+        "protected_capability_status",
+        "public_contract_status",
+        "references_searched",
+        "reviewed_at",
+        "reviewer",
+        "test_coverage"
+      ],
+      "properties": {
+        "candidate": {
+          "description": "Repository path or fully qualified symbol under review.",
+          "type": "string",
+          "minLength": 1
+        },
+        "category": {
+          "description": "Cleanup candidate category (Requirement 2.1).",
+          "enum": ["ASSET", "CONFIGURATION_ENTRY", "DEPENDENCY", "FILE", "ROUTE", "SYMBOL"]
+        },
+        "references_searched": {
+          "description": "One entry per searched reference class. Every class in the reference-class enum must be present before a candidate can be eligible for removal review (Requirements 2.2, 2.3).",
+          "type": "array",
+          "items": { "$ref": "#/$defs/reference_search" }
+        },
+        "public_contract_status": {
+          "description": "Public HTTP contract relationship. UNKNOWN retains the candidate (Requirements 2.3, 2.4).",
+          "enum": ["NONE", "PUBLIC_HTTP_CONTRACT", "UNKNOWN"]
+        },
+        "protected_capability_status": {
+          "description": "Protected Capability relationship. UNKNOWN retains the candidate (Requirements 2.3, 2.4, 2.6).",
+          "enum": ["NONE", "PROTECTED_CAPABILITY_DEPENDENCY", "UNKNOWN"]
+        },
+        "test_coverage": {
+          "description": "Test identities that exercise the candidate's behavior (Requirements 2.1, 2.5).",
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "dependency_path_scopes_checked": {
+          "description": "Supported paths proven clear for a DEPENDENCY candidate. All four scopes are required before a dependency is eligible (Requirement 2.7).",
+          "type": "array",
+          "items": { "enum": ["BUILD", "MIGRATION", "RUNTIME", "TEST"] },
+          "uniqueItems": true
+        },
+        "removal_justification": {
+          "description": "Reviewer reasons for the proposed removal. NAVIGATION_NOT_EXPOSED alone retains the candidate (Requirement 2.6).",
+          "type": "array",
+          "items": {
+            "enum": [
+              "NAVIGATION_NOT_EXPOSED",
+              "NO_REFERENCE_FOUND",
+              "REPLACED_BY_APPROVED_CHANGE",
+              "UNUSED_DEPENDENCY"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "proposed_disposition": {
+          "description": "Reviewer proposal. Validation derives the real classification from the recorded evidence and reports a conflict when the proposal is unsupported (Requirement 2.1).",
+          "enum": ["ELIGIBLE_FOR_REMOVAL_REVIEW", "RETAINED"]
+        },
+        "reviewer": {
+          "description": "Identity of the reviewer who examined the evidence (Requirement 2.1).",
+          "type": "string",
+          "minLength": 1
+        },
+        "reviewed_at": {
+          "description": "ISO 8601 date or timestamp of the review (Requirement 2.1).",
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_gaps": {
+          "description": "Anything the reviewer could not establish. A non-empty list retains the candidate and is recorded as incomplete cleanup evidence (Requirement 2.4).",
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "notes": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "reference_search": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["query", "reference_type", "result"],
+      "properties": {
+        "reference_type": {
+          "description": "Reference class searched (Requirements 2.2, 2.3).",
+          "enum": [
+            "CONFIGURATION",
+            "DOCUMENTATION_COMMAND",
+            "HTTP_ROUTE",
+            "MIGRATION",
+            "RUNTIME_IMPORT",
+            "STATIC_ASSET",
+            "SUPPORTED_RUNTIME",
+            "TEMPLATE",
+            "TEST"
+          ]
+        },
+        "query": {
+          "description": "The search actually performed, recorded so the review can be repeated.",
+          "type": "string",
+          "minLength": 1
+        },
+        "result": {
+          "description": "Search outcome. FOUND, UNREADABLE, and INCONCLUSIVE each retain the candidate; only NONE_FOUND supports eligibility (Requirements 2.2, 2.4).",
+          "enum": ["FOUND", "INCONCLUSIVE", "NONE_FOUND", "UNREADABLE"]
+        },
+        "locations": {
+          "description": "Where the reference was found. A NONE_FOUND result with locations is conflicting evidence.",
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "notes": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}

@@ -23,11 +23,45 @@ REQUEST_ID_HEADER = "X-Request-ID"
 _REQUEST_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
 
 
+class StartupSecurityError(RuntimeError):
+    """A protected profile cannot serve operational routes with this configuration.
+
+    Raised before any route is registered. The message names the failed condition
+    and never the configured value (Requirement 9.9, 17.5).
+    """
+
+    def __init__(self, reason: str) -> None:
+        super().__init__(f"Startup refused: {reason}")
+        self.reason = reason
+
+
+def _enforce_startup_security(settings: Settings) -> None:
+    """Fail startup for a protected profile missing required security configuration.
+
+    Settings validation already rejects these combinations. Repeating the gate at
+    the application boundary means a configuration reaching ``create_app`` by any
+    other route still cannot serve operational endpoints.
+    """
+    policy = settings.profile_policy
+    if not policy.requires_secret_authentication:
+        return
+    if settings.auth_mode != "api_key":
+        raise StartupSecurityError(f"the {policy.profile} profile requires api_key authentication")
+    if not settings.api_key:
+        raise StartupSecurityError(f"the {policy.profile} profile requires a configured API key")
+    if not settings.auth_scopes:
+        raise StartupSecurityError(f"the {policy.profile} profile requires at least one configured operation scope")
+    if not policy.allows_wildcard_cors_origins and "*" in settings.cors_origins:
+        raise StartupSecurityError(f"the {policy.profile} profile requires explicit CORS origins")
+
+
 def _build_lifespan(settings: Settings):
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         from app.core.container import get_clock
         logger.info("service ready | env=%s | prefix=%s | simulation_time=%s", settings.environment, settings.api_prefix, get_clock(settings).now().isoformat())
+        # Non-secret profile evidence only: no API key, credential, or database URL.
+        logger.info("environment profile | %s", " ".join(f"{key}={value}" for key, value in settings.profile_summary().items()))
         logger.info("payment execution is synthetic only; no real money moves")
         yield
     return lifespan
@@ -50,20 +84,21 @@ def _request_id(request: Request) -> str:
     return supplied if _REQUEST_ID_RE.fullmatch(supplied) else uuid4().hex
 
 
-def _apply_security_headers(response: JSONResponse | object, *, production: bool) -> None:
+def _apply_security_headers(response: JSONResponse | object, *, transport_security: bool) -> None:
     # Response is deliberately duck-typed to include Starlette streaming responses.
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
     response.headers.setdefault("X-Frame-Options", "DENY")
     response.headers.setdefault("Referrer-Policy", "no-referrer")
     response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
     response.headers.setdefault("Cross-Origin-Opener-Policy", "same-origin")
-    if production:
+    if transport_security:
         response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
 
 
 def create_app() -> FastAPI:
     settings = get_settings()
     configure_logging(settings.log_level)
+    _enforce_startup_security(settings)
     app = FastAPI(title=settings.app_name, description=settings.app_description, version=settings.version, docs_url="/docs", redoc_url="/redoc", openapi_url="/openapi.json", lifespan=_build_lifespan(settings))
 
     if settings.cors_origins:
@@ -91,7 +126,7 @@ def create_app() -> FastAPI:
             elapsed_ms = (time.perf_counter() - started) * 1000.0
             response.headers[REQUEST_ID_HEADER] = request_id
             response.headers[RESPONSE_TIME_HEADER] = f"{elapsed_ms:.2f}"
-            _apply_security_headers(response, production=settings.is_production)
+            _apply_security_headers(response, transport_security=settings.profile_policy.requires_transport_security)
             logger.info("request complete | method=%s path=%s status=%s duration_ms=%.2f", request.method, request.url.path, response.status_code, elapsed_ms)
             return response
 

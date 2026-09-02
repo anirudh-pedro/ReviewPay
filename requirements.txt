@@ -12,3 +12,7 @@ psycopg[binary]==3.2.6
 
 # Testing
 pytest==8.4.2
+# Property-based testing for the deterministic mappers, lifecycle transitions,
+# source-binding predicates, and concurrency invariants required to run at least
+# 100 generated cases (Requirement 15.11).
+hypothesis==6.125.3

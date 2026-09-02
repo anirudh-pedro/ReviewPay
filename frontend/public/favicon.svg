@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="RevivePay">
+  <rect width="64" height="64" rx="14" fill="#0b1220"/>
+  <path d="M14 33 26 45 51 19" fill="none" stroke="#38bdf8" stroke-linecap="round" stroke-linejoin="round" stroke-width="7"/>
+  <path d="M14 20h16" fill="none" stroke="#38bdf8" stroke-linecap="round" stroke-width="6"/>
+</svg>

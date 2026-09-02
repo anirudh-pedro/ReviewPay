@@ -139,6 +139,8 @@ pnpm-debug.log*
 *.pickle
 *.onnx
 *.h5
-models/
+# Root-level trained-model artefacts only. The application package at app/models/
+# contains SQLAlchemy source and must remain trackable.
+/models/
 artifacts/
 mlruns/

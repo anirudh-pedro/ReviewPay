@@ -23,6 +23,7 @@ import type {
 } from '@/types/api';
 
 export * from './recovery';
+export * from './gateway';
 
 /** Bound parallel detail requests so a large case page cannot flood the API. */
 const CASE_DETAIL_CONCURRENCY = 6;

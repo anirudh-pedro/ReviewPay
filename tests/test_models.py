@@ -50,7 +50,7 @@ EXPECTED_TABLES = {
 def test_legacy_domain_models_remain_declared():
     """P4 preserves the original seven recovery-domain models."""
     assert len(LEGACY_DOMAIN_MODELS) == 7
-    assert len(ALL_MODELS) == 9
+    assert len(ALL_MODELS) == 11
 
 
 def test_baseline_migration_creates_the_legacy_domain_schema(tmp_path):
@@ -74,6 +74,7 @@ def test_alembic_configuration_and_fixed_baseline_exist():
     assert (root / "alembic" / "env.py").is_file()
     assert (root / "alembic" / "versions" / "20260829_01_baseline_domain_schema.py").is_file()
     assert (root / "alembic" / "versions" / "20260829_02_operational_jobs_outbox.py").is_file()
+    assert (root / "alembic" / "versions" / "20260829_03_razorpay_gateway.py").is_file()
 
 
 def test_declared_indexes_are_created(db_engine):

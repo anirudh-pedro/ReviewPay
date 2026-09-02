@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import datetime
 from functools import lru_cache
-from typing import Literal
+from types import MappingProxyType
+from typing import Literal, Mapping
 
 from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -29,6 +31,114 @@ DEFAULT_SIMULATOR_SUCCESS_PROBABILITY = {
 }
 DEFAULT_SIMULATOR_FALLBACK_PROBABILITY = 0.30
 PRODUCTION_ENVIRONMENTS = frozenset({"production", "prod"})
+
+# ---------------------------------------------------------------------------
+# Environment profiles (Requirement 9.1)
+# ---------------------------------------------------------------------------
+#
+# ``ENVIRONMENT`` stays a free-text deployment label so existing values such as
+# ``development`` keep working verbatim in responses and logs. Every supported
+# label resolves to exactly one of five normalized profiles, and *policy* is read
+# from the profile rather than from string comparisons scattered across modules.
+
+PROFILE_LOCAL = "local"
+PROFILE_DEMO = "demo"
+PROFILE_TEST = "test"
+PROFILE_STAGING = "staging"
+PROFILE_PRODUCTION = "production"
+
+ENVIRONMENT_PROFILES: tuple[str, ...] = (PROFILE_LOCAL, PROFILE_DEMO, PROFILE_TEST, PROFILE_STAGING, PROFILE_PRODUCTION)
+
+#: Accepted ``ENVIRONMENT`` labels and the profile each one resolves to.
+ENVIRONMENT_PROFILE_ALIASES: Mapping[str, str] = MappingProxyType(
+    {
+        "local": PROFILE_LOCAL,
+        "development": PROFILE_LOCAL,
+        "dev": PROFILE_LOCAL,
+        "demo": PROFILE_DEMO,
+        "test": PROFILE_TEST,
+        "testing": PROFILE_TEST,
+        "ci": PROFILE_TEST,
+        "staging": PROFILE_STAGING,
+        "stage": PROFILE_STAGING,
+        "production": PROFILE_PRODUCTION,
+        "prod": PROFILE_PRODUCTION,
+    }
+)
+
+#: Profiles that carry real operational authority and therefore fail closed.
+PROTECTED_PROFILES = frozenset({PROFILE_STAGING, PROFILE_PRODUCTION})
+#: Profiles that may run the documented development authentication mode.
+DEVELOPMENT_PROFILES = frozenset({PROFILE_LOCAL, PROFILE_DEMO, PROFILE_TEST})
+#: Profiles in which destructive demo reset is permitted (Requirement 9.5).
+RESETTABLE_PROFILES = frozenset({PROFILE_LOCAL, PROFILE_DEMO, PROFILE_TEST})
+#: Profiles in which ``create_all``/``drop_all`` bootstrap is permitted.
+#: Staging and production are excluded: Alembic is their only schema path
+#: (Requirement 10.2).
+SCHEMA_BOOTSTRAP_PROFILES = frozenset({PROFILE_LOCAL, PROFILE_DEMO, PROFILE_TEST})
+
+
+@dataclass(frozen=True)
+class ProfilePolicy:
+    """Immutable, derived security and operational policy for one profile.
+
+    Every field answers a question a caller would otherwise answer by comparing
+    environment strings. Nothing here holds a secret, so the policy is safe to
+    log or return in non-secret operational status evidence.
+    """
+
+    profile: str
+    #: Local/demo/test may run the documented disabled-authentication demo mode.
+    allows_disabled_authentication: bool
+    #: Staging/production must be configured with approved secret authentication.
+    requires_secret_authentication: bool
+    #: Staging/production require an authenticated principal for every mutation.
+    requires_authenticated_operational_principal: bool
+    #: Wildcard CORS is never acceptable for a protected profile.
+    allows_wildcard_cors_origins: bool
+    #: ``create_all``/``drop_all`` bootstrap paths (Alembic is the only other path).
+    allows_schema_bootstrap: bool
+    #: Destructive demo reset.
+    allows_destructive_reset: bool
+    #: Startup/readiness must verify the supported schema revision.
+    requires_schema_revision_check: bool
+    #: Emit HSTS and expect TLS termination in front of the process.
+    requires_transport_security: bool
+    #: No profile enables a real-money provider executor (Requirement 7.7).
+    allows_provider_action_executor: bool = False
+
+
+def _build_profile_policy(profile: str) -> ProfilePolicy:
+    protected = profile in PROTECTED_PROFILES
+    return ProfilePolicy(
+        profile=profile,
+        allows_disabled_authentication=profile in DEVELOPMENT_PROFILES,
+        requires_secret_authentication=protected,
+        requires_authenticated_operational_principal=protected,
+        allows_wildcard_cors_origins=not protected,
+        allows_schema_bootstrap=profile in SCHEMA_BOOTSTRAP_PROFILES,
+        allows_destructive_reset=profile in RESETTABLE_PROFILES,
+        requires_schema_revision_check=protected,
+        requires_transport_security=protected,
+    )
+
+
+#: One frozen policy per profile; profiles are a closed set, so this is complete.
+PROFILE_POLICIES: Mapping[str, ProfilePolicy] = MappingProxyType(
+    {profile: _build_profile_policy(profile) for profile in ENVIRONMENT_PROFILES}
+)
+
+
+def resolve_environment_profile(environment: str) -> str:
+    """Normalize an ``ENVIRONMENT`` label to its profile, or fail closed."""
+    candidate = (environment or "").strip().lower()
+    try:
+        return ENVIRONMENT_PROFILE_ALIASES[candidate]
+    except KeyError:
+        raise ValueError(
+            "ENVIRONMENT must name a supported profile. Accepted values: "
+            f"{', '.join(sorted(ENVIRONMENT_PROFILE_ALIASES))}."
+        ) from None
 
 
 class Settings(BaseSettings):
@@ -83,25 +193,66 @@ class Settings(BaseSettings):
     ai_diagnosis_provider: str = "local_mock"
     default_currency: str = "INR"
 
-    @field_validator("environment", "log_level")
+    # Razorpay is an opt-in Sandbox gateway path. Simulator execution remains the default.
+    razorpay_enabled: bool = False
+    razorpay_key_id: str | None = None
+    razorpay_key_secret: str | None = None
+    razorpay_webhook_secret: str | None = None
+    razorpay_api_base_url: str = "https://api.razorpay.com/v1"
+    razorpay_timeout_seconds: int = 10
+
+    @field_validator("environment")
     @classmethod
-    def _normalise_text(cls, value: str) -> str:
-        return value.strip().lower() if value.strip().lower() in {"production", "prod", "development", "demo", "local", "test"} else value.strip().upper()
+    def _normalise_environment(cls, value: str) -> str:
+        # Fail closed on an unrecognized label rather than guessing a policy for it.
+        resolve_environment_profile(value)
+        return value.strip().lower()
+
+    @field_validator("log_level")
+    @classmethod
+    def _normalise_log_level(cls, value: str) -> str:
+        return value.strip().upper()
 
     @model_validator(mode="after")
     def _validate_production_boundaries(self) -> "Settings":
-        if self.is_production:
+        if self.razorpay_enabled and (
+            not self.razorpay_key_id or not self.razorpay_key_secret
+        ):
+            raise ValueError(
+                "RAZORPAY_ENABLED requires RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET"
+            )
+        policy = self.profile_policy
+        if policy.requires_secret_authentication:
+            # Requirement 9.3, 9.9: a protected profile cannot start without
+            # approved secret authentication and explicit browser origins.
             if self.auth_mode != "api_key" or not self.api_key:
-                raise ValueError("production requires AUTH_MODE=api_key and a non-empty API_KEY")
-            if "*" in self.cors_origins:
-                raise ValueError("production CORS origins must be explicit; '*' is not allowed")
-            if self.execution_mode != "enqueue":
-                raise ValueError("production requires EXECUTION_MODE=enqueue")
+                raise ValueError(f"{policy.profile} requires AUTH_MODE=api_key and a non-empty API_KEY")
+            if not self.auth_scopes:
+                raise ValueError(f"{policy.profile} requires at least one API_KEY_SCOPES entry")
+        if not policy.allows_wildcard_cors_origins and "*" in self.cors_origins:
+            raise ValueError(f"{policy.profile} CORS origins must be explicit; '*' is not allowed")
+        if self.is_production and self.execution_mode != "enqueue":
+            raise ValueError("production requires EXECUTION_MODE=enqueue")
         return self
+
+    @property
+    def environment_profile(self) -> str:
+        """The normalized profile (``local``, ``demo``, ``test``, ``staging``, ``production``)."""
+        return resolve_environment_profile(self.environment)
+
+    @property
+    def profile_policy(self) -> ProfilePolicy:
+        """Derived, immutable, secret-free policy for the resolved profile."""
+        return PROFILE_POLICIES[self.environment_profile]
 
     @property
     def is_production(self) -> bool:
         return self.environment.lower() in PRODUCTION_ENVIRONMENTS
+
+    @property
+    def is_protected_profile(self) -> bool:
+        """True for staging and production, which fail closed on security gaps."""
+        return self.environment_profile in PROTECTED_PROFILES
 
     @property
     def cors_origins(self) -> list[str]:
@@ -110,6 +261,25 @@ class Settings(BaseSettings):
     @property
     def auth_scopes(self) -> frozenset[str]:
         return frozenset(scope.strip() for scope in self.api_key_scopes.split(",") if scope.strip())
+
+    def profile_summary(self) -> dict[str, str]:
+        """Non-secret startup/diagnostic summary.
+
+        Deliberately excludes the API key, provider credentials, and the database
+        URL so the summary can be logged verbatim (Requirement 9.7, 9.8).
+        """
+        policy = self.profile_policy
+        return {
+            "environment": self.environment,
+            "environment_profile": policy.profile,
+            "authentication_mode": self.auth_mode,
+            "authenticated_principal_required": str(policy.requires_authenticated_operational_principal).lower(),
+            "execution_mode": self.execution_mode,
+            "action_executor": self.action_executor_impl,
+            "cors_origin_count": str(len(self.cors_origins)),
+            "schema_bootstrap_allowed": str(policy.allows_schema_bootstrap).lower(),
+            "destructive_reset_allowed": str(policy.allows_destructive_reset).lower(),
+        }
 
     def intervention_cost(self, action: ActionType) -> int:
         return int(self.intervention_cost_minor.get(action.value, DEFAULT_INTERVENTION_COST_MINOR.get(action.value, 0)))

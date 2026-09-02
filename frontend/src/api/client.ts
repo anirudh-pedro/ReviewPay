@@ -68,6 +68,7 @@ interface RequestOptions<T> {
   body?: unknown;
   signal?: AbortSignal;
   validate?: ApiResponseValidator<T>;
+  headers?: Record<string, string>;
 }
 
 interface ErrorEnvelope {
@@ -97,7 +98,11 @@ async function request<T>(path: string, options: RequestOptions<T> = {}): Promis
   const url = `${API_BASE_URL}${path}`;
   const hasBody = options.body !== undefined;
 
-  const headers: Record<string, string> = { Accept: 'application/json', 'X-Request-ID': correlationId() };
+  const headers: Record<string, string> = {
+    Accept: 'application/json',
+    'X-Request-ID': correlationId(),
+    ...options.headers,
+  };
   if (hasBody) headers['Content-Type'] = 'application/json';
   // A deployment may inject a short-lived token at build time or an operator may
   // provide one through session storage; no credential is persisted by this app.
@@ -188,6 +193,7 @@ export function apiPost<T>(
   body: unknown = {},
   signal?: AbortSignal,
   validate?: ApiResponseValidator<T>,
+  headers?: Record<string, string>,
 ): Promise<T> {
-  return request<T>(path, { method: 'POST', body, signal, validate });
+  return request<T>(path, { method: 'POST', body, signal, validate, headers });
 }

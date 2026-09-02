@@ -77,7 +77,7 @@ class PaymentService:
 
     # -- customers ---------------------------------------------------------
 
-    def ensure_customer(self, customer_id: str | None) -> Customer:
+    def ensure_customer(self, customer_id: str | None, *, is_synthetic: bool = True) -> Customer:
         """Return the named customer, creating a synthetic one when absent.
 
         Lets ``POST /payments/simulate`` produce a demonstrable at-risk payment in
@@ -87,10 +87,10 @@ class PaymentService:
             customer = self._session.get(Customer, customer_id)
             if customer is not None:
                 return customer
-            return self._create_customer(customer_id)
-        return self._create_customer(new_id("cust"))
+            return self._create_customer(customer_id, is_synthetic=is_synthetic)
+        return self._create_customer(new_id("cust"), is_synthetic=is_synthetic)
 
-    def _create_customer(self, customer_id: str) -> Customer:
+    def _create_customer(self, customer_id: str, *, is_synthetic: bool) -> Customer:
         now = self._clock.now()
         customer = Customer(
             customer_id=customer_id,
@@ -101,7 +101,7 @@ class PaymentService:
             average_transaction_value=400_000,
             subscription_status=SubscriptionStatus.ACTIVE,
             meta={"generated": True},
-            is_synthetic=True,
+            is_synthetic=is_synthetic,
             name=None,
             created_at=now,
             updated_at=now,
@@ -124,6 +124,8 @@ class PaymentService:
         merchant_id: str = "merch_demo",
         metadata: dict[str, Any] | None = None,
         payment_id: str | None = None,
+        is_synthetic: bool = True,
+        commit: bool = True,
     ) -> Payment:
         """Create a synthetic payment (Requirement 4.1).
 
@@ -131,7 +133,7 @@ class PaymentService:
         recorded and ``attempt_count`` starts at one, so the payment is
         immediately a valid input to risk detection.
         """
-        customer = self.ensure_customer(customer_id)
+        customer = self.ensure_customer(customer_id, is_synthetic=is_synthetic)
         now = self._clock.now()
 
         starts_unsuccessful = status in PaymentStatus.unsuccessful()
@@ -148,7 +150,7 @@ class PaymentService:
             failure_reason=resolved_reason,
             merchant_id=merchant_id,
             meta=metadata or {},
-            is_synthetic=True,
+            is_synthetic=is_synthetic,
             created_at=now,
             updated_at=now,
         )
@@ -164,7 +166,10 @@ class PaymentService:
                 provider_response={"simulated": True, "origin": "create_payment"},
             )
 
-        self._session.commit()
+        if commit:
+            self._session.commit()
+        else:
+            self._session.flush()
         logger.info(
             "payment created | %s | %s %s | status=%s",
             payment.payment_id,
@@ -233,6 +238,42 @@ class PaymentService:
             source=SOURCE_RECOVERY,
             action_type=action,
             provider_response=provider_response or {},
+        )
+        self._session.flush()
+        return attempt
+
+    def record_external_checkout_attempt(
+        self,
+        *,
+        payment: Payment,
+        status: PaymentStatus,
+        failure_reason: FailureReason | None,
+        provider_response: dict[str, Any],
+    ) -> PaymentAttempt | None:
+        """Apply a verified external checkout state without using recovery execution.
+
+        Pending provider states are recorded on the payment but do not inflate the
+        attempt ledger. Terminal states each record one source=checkout attempt.
+        The caller owns the surrounding transaction and case detection.
+        """
+        payment.status = status
+        payment.updated_at = self._clock.now()
+        if status in PaymentStatus.successful():
+            payment.failure_reason = None
+        else:
+            payment.failure_reason = failure_reason
+
+        if status not in PaymentStatus.successful() and status not in PaymentStatus.unsuccessful():
+            self._session.flush()
+            return None
+
+        payment.attempt_count += 1
+        attempt = self._add_attempt(
+            payment=payment,
+            status=status,
+            failure_reason=None if status in PaymentStatus.successful() else failure_reason,
+            source=SOURCE_CHECKOUT,
+            provider_response=provider_response,
         )
         self._session.flush()
         return attempt

@@ -64,7 +64,11 @@ class Page(BaseModel, Generic[T]):
 
 
 class HealthResponse(BaseModel):
-    """Service health and the current simulation time (Requirement 24.1)."""
+    """Service health and the current simulation time (Requirement 24.1).
+
+    The profile and authentication fields are non-secret operational status
+    evidence: they name the *mode*, never a key, scope secret, or database URL.
+    """
 
     status: str = Field(default="ok")
     app_name: str
@@ -74,6 +78,20 @@ class HealthResponse(BaseModel):
         description="Current simulation time. Advances only via /simulate/advance-clock."
     )
     data_source: str = Field(default=SYNTHETIC_DATA_SOURCE)
+    environment_profile: str = Field(
+        default="local",
+        description="Normalized profile: local, demo, test, staging, or production.",
+        examples=["local"],
+    )
+    authentication_mode: str = Field(
+        default="disabled",
+        description="Configured authentication mode. Never contains credential material.",
+        examples=["disabled", "api_key"],
+    )
+    authenticated_principal_required: bool = Field(
+        default=False,
+        description="Whether this profile requires an authenticated principal for every operational mutation.",
+    )
 
 
 class SyntheticNotice(BaseModel):

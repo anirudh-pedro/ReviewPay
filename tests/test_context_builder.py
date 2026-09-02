@@ -168,11 +168,14 @@ def test_transaction_hour_comes_from_the_stored_timestamp(
 ):
     """Requirement 6.3: 13:00 simulation start means hour 13."""
     payment = payment_factory(status=PaymentStatus.FAILED, failure_reason=FailureReason.BANK_TIMEOUT)
-    assert builder.build(case_factory(payment)).transaction_hour == 13
+    case = case_factory(payment)
+    assert builder.build(case).transaction_hour == 13
 
-    # Advancing the clock does not retroactively change the payment's hour.
+    # Advancing the clock does not retroactively change the payment's hour. One
+    # case per payment: a payment may not hold two open cases at once
+    # (Requirement 10.5).
     clock.advance(hours=5)
-    assert builder.build(case_factory(payment)).transaction_hour == 13
+    assert builder.build(case).transaction_hour == 13
 
 
 def test_subscription_status_is_exposed(builder, case_factory, payment_factory, customer_factory):
