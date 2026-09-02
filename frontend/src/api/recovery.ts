@@ -20,6 +20,7 @@ import {
   isRecoveryCaseSummary,
   isRecoveryIntelligenceResponse,
   isIntelligenceModelStatusResponse,
+  isJudgeDemoResponse,
   isScenariosResponse,
   isStrategyLabResponse,
   isWorkflowRunResponse,
@@ -250,3 +251,12 @@ export const getIntelligenceModelStatus = (signal?: AbortSignal) =>
     signal,
     isIntelligenceModelStatusResponse,
   );
+
+/** 8-stage Judge Demo evaluation pipeline for a case. */
+export const getJudgeDemo = (caseId: string, signal?: AbortSignal) =>
+  apiGet<import('@/types/api').JudgeDemoResponse>(
+    `${PREFIX}/recovery/cases/${encodeURIComponent(caseId)}/judge-demo`,
+    signal,
+    isJudgeDemoResponse,
+  );
+

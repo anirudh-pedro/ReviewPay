@@ -1,5 +1,6 @@
-import { AlertTriangle, ArrowRight, LoaderCircle, RefreshCw } from 'lucide-react';
+import { AlertTriangle, ArrowRight, ChevronDown, LoaderCircle, RefreshCw } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { useState } from 'react';
 import type { ButtonHTMLAttributes, HTMLAttributes, ReactNode } from 'react';
 import type { ApiError } from '@/api/client';
 
@@ -76,7 +77,7 @@ export interface CardProps extends HTMLAttributes<HTMLDivElement> {
 
 export function Card({ children, className, ...props }: CardProps) {
   return (
-    <section className={cx('rounded-xl border border-white/[0.055] bg-ink-850 shadow-card', className)} {...props}>
+    <section className={cx('rounded-xl border border-white/[0.065] bg-ink-850/90 shadow-card backdrop-blur-md', className)} {...props}>
       {children}
     </section>
   );
@@ -133,6 +134,81 @@ export function StatusBadge({
     >
       {children}
     </span>
+  );
+}
+
+export function MetricCard({
+  title,
+  value,
+  subtext,
+  icon: Icon,
+  tone = 'neutral',
+  className,
+}: {
+  title: string;
+  value: ReactNode;
+  subtext?: string;
+  icon?: LucideIcon;
+  tone?: 'emerald' | 'amber' | 'sky' | 'rose' | 'indigo' | 'neutral';
+  className?: string;
+}) {
+  const toneMap = {
+    emerald: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
+    amber: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
+    sky: 'text-sky-400 bg-sky-500/10 border-sky-500/20',
+    rose: 'text-rose-400 bg-rose-500/10 border-rose-500/20',
+    indigo: 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20',
+    neutral: 'text-slate-400 bg-slate-500/10 border-slate-500/20',
+  };
+
+  return (
+    <Card className={cx('p-5 flex flex-col justify-between', className)}>
+      <div className="flex items-start justify-between gap-3">
+        <span className="text-[0.7rem] font-bold uppercase tracking-wider text-slate-400">
+          {title}
+        </span>
+        {Icon ? (
+          <div className={cx('grid size-8 place-items-center rounded-lg border', toneMap[tone])}>
+            <Icon aria-hidden="true" className="size-4" />
+          </div>
+        ) : null}
+      </div>
+      <div className="mt-3">
+        <div className="metric-value font-mono text-2xl font-bold tracking-tight text-slate-50">
+          {value}
+        </div>
+        {subtext ? <p className="mt-1 text-xs text-slate-400">{subtext}</p> : null}
+      </div>
+    </Card>
+  );
+}
+
+export function Accordion({
+  title,
+  children,
+  defaultOpen = false,
+}: {
+  title: string;
+  children: ReactNode;
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+
+  return (
+    <div className="rounded-lg border border-white/[0.06] bg-black/20 overflow-hidden">
+      <button
+        className="flex w-full items-center justify-between px-4 py-3 text-left text-xs font-semibold text-slate-300 hover:bg-white/[0.02]"
+        type="button"
+        onClick={() => setOpen(!open)}
+      >
+        <span>{title}</span>
+        <ChevronDown
+          aria-hidden="true"
+          className={cx('size-4 text-slate-400 transition-transform', open && 'rotate-180')}
+        />
+      </button>
+      {open ? <div className="border-t border-white/[0.06] p-4 text-xs text-slate-400">{children}</div> : null}
+    </div>
   );
 }
 

@@ -8,6 +8,7 @@ const CaseDetailPage = lazy(() => import('@/pages/CaseDetailPage').then((module)
 const AutopilotPage = lazy(() => import('@/pages/AutopilotPage').then((module) => ({ default: module.AutopilotPage })));
 const StrategyLabPage = lazy(() => import('@/pages/StrategyLabPage').then((module) => ({ default: module.StrategyLabPage })));
 const LiveGatewayDemoPage = lazy(() => import('@/pages/LiveGatewayDemoPage').then((module) => ({ default: module.LiveGatewayDemoPage })));
+const JudgeDemoPage = lazy(() => import('@/pages/JudgeDemoPage').then((module) => ({ default: module.JudgeDemoPage })));
 
 function RouteLoading() {
   return <main className="grid min-h-48 place-items-center p-6" aria-live="polite">Loading Command Center view…</main>;
@@ -26,6 +27,7 @@ export default function App() {
             <Route path="autopilot" element={<AutopilotPage />} />
             <Route path="strategy-lab" element={<StrategyLabPage />} />
             <Route path="live-gateway-demo" element={<LiveGatewayDemoPage />} />
+            <Route path="judge-demo" element={<JudgeDemoPage />} />
             <Route path="*" element={<Navigate replace to="/command-center" />} />
           </Route>
         </Routes>

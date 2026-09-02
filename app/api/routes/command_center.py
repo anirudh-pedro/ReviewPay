@@ -31,6 +31,8 @@ from app.schemas.product import (
     CustomerContextRead,
     DemoScenarioRead,
     FailureReasonBreakdownRead,
+    JudgeDemoResponse,
+    JudgeDemoStageRead,
     OverviewResponse,
     SafetyChecks,
     ScenarioOverridesRequest,
@@ -41,6 +43,7 @@ from app.schemas.product import (
 )
 from app.services.analytics_service import AnalyticsService
 from app.services.autopilot import AutopilotService
+from app.services.judge_demo_service import JudgeDemoService
 from app.services.policy_rules import RULE_ORDER
 from app.services.strategy_lab import (
     ScenarioOverrides,
@@ -481,3 +484,62 @@ def baseline(
         cases_evaluated=comparison.cases_evaluated,
         notice=comparison.notice,
     )
+
+
+# ---------------------------------------------------------------------------
+# Judge Demo Flow Endpoint
+# ---------------------------------------------------------------------------
+
+
+@router.get(
+    "/cases/{case_id}/judge-demo",
+    response_model=JudgeDemoResponse,
+    summary="8-stage Judge Demo evaluation pipeline with clear proof labels",
+)
+def judge_demo(
+    case_id: str,
+    session: SessionDep,
+    clock: ClockDep,
+    settings: SettingsDep,
+) -> JudgeDemoResponse:
+    """Run the 8-stage judge demo lifecycle for one case."""
+    result = JudgeDemoService(session=session, clock=clock, settings=settings).run_judge_demo(case_id)
+    currency = result.currency
+
+    return JudgeDemoResponse(
+        case_id=result.case_id,
+        payment_id=result.payment_id,
+        amount=Money.of(result.amount, currency),
+        evidence_source=result.evidence_source,
+        is_real_razorpay=result.is_real_razorpay,
+        razorpay_order_id=result.razorpay_order_id,
+        razorpay_payment_id=result.razorpay_payment_id,
+        ai_root_cause=result.ai_root_cause,
+        ai_confidence=result.ai_confidence,
+        ai_recommended_action=result.ai_recommended_action,
+        ai_reasoning=result.ai_reasoning,
+        selected_action=result.selected_action,
+        expected_recovery_value=Money.of(result.expected_recovery_value, currency) if result.expected_recovery_value is not None else None,
+        gross_recovery=Money.of(result.gross_recovery, currency) if result.gross_recovery is not None else None,
+        intervention_cost=Money.of(result.intervention_cost, currency) if result.intervention_cost is not None else None,
+        friction_penalty=Money.of(result.friction_penalty, currency) if result.friction_penalty is not None else None,
+        policy_outcome=result.policy_outcome,
+        policy_rule_id=result.policy_rule_id,
+        policy_reason=result.policy_reason,
+        final_case_state=result.final_case_state,
+        execution_status=result.execution_status,
+        recovered_amount=Money.of(result.recovered_amount, currency),
+        is_recovered=result.is_recovered,
+        stages=[
+            JudgeDemoStageRead(
+                stage_number=stage.stage_number,
+                name=stage.name,
+                label=stage.label,
+                status=stage.status,
+                detail=stage.detail,
+                payload=stage.payload,
+            )
+            for stage in result.stages
+        ],
+    )
+

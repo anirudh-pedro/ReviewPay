@@ -112,12 +112,29 @@ def create_app() -> FastAPI:
             max_age=600,
         )
 
+    from app.core.rate_limiter import RateLimitExceeded, SlidingWindowRateLimiter, extract_client_ip
+    rate_limiter = SlidingWindowRateLimiter(requests_per_minute=settings.rate_limit_requests_per_minute)
+
     @app.middleware("http")
     async def protect_and_observe_request(request: Request, call_next):
         request_id = _request_id(request)
         request.state.request_id = request_id
         started = time.perf_counter()
         with log_context(request_id=request_id):
+            client_key = extract_client_ip(request.headers, request.client.host if request.client else "127.0.0.1")
+            # Enforce sliding window rate limit for mutating or demo requests (disabled in test profile)
+            if request.method in ("POST", "PUT", "DELETE", "PATCH") and settings.environment_profile != "test":
+                try:
+                    rate_limiter.check(client_key)
+                except RateLimitExceeded as exc:
+                    response = JSONResponse(
+                        status_code=exc.http_status,
+                        content=_envelope(exc.code, exc.message),
+                        headers=exc.headers,
+                    )
+                    _apply_security_headers(response, transport_security=settings.profile_policy.requires_transport_security)
+                    return response
+
             declared_size = request.headers.get("content-length")
             if declared_size and declared_size.isdigit() and int(declared_size) > settings.max_request_body_bytes:
                 response = JSONResponse(status_code=413, content=_envelope("PAYLOAD_TOO_LARGE", "Request body exceeds the configured limit."))

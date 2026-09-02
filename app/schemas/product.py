@@ -351,3 +351,54 @@ class DemoResetResponse(SyntheticNotice):
     scenarios: list[DemoScenarioRead]
     virtual_clock_time: datetime
     message: str
+
+
+# ---------------------------------------------------------------------------
+# Judge Demo Flow
+# ---------------------------------------------------------------------------
+
+
+class JudgeDemoStageRead(BaseModel):
+    """One of the 8 proof stages in the Judge Demo pipeline."""
+
+    stage_number: int
+    name: str
+    label: str
+    status: str
+    detail: str
+    payload: dict[str, Any]
+
+
+class JudgeDemoResponse(SyntheticNotice):
+    """Complete 8-stage proof payload for Judge Demo evaluation."""
+
+    case_id: str
+    payment_id: str
+    amount: Money
+    evidence_source: str
+    is_real_razorpay: bool
+    razorpay_order_id: str | None
+    razorpay_payment_id: str | None
+
+    ai_root_cause: str
+    ai_confidence: float
+    ai_recommended_action: str
+    ai_reasoning: str
+
+    selected_action: str | None
+    expected_recovery_value: Money | None
+    gross_recovery: Money | None
+    intervention_cost: Money | None
+    friction_penalty: Money | None
+
+    policy_outcome: str | None
+    policy_rule_id: str | None
+    policy_reason: str | None
+
+    final_case_state: str
+    execution_status: str | None
+    recovered_amount: Money
+    is_recovered: bool
+
+    stages: list[JudgeDemoStageRead]
+

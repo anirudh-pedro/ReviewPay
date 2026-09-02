@@ -787,3 +787,39 @@ export function isIntelligenceModelStatusResponse(
     isIntelligenceModelTraining(value.training)
   );
 }
+
+function isJudgeDemoStage(value: unknown): value is import('@/types/api').JudgeDemoStage {
+  return (
+    isRecord(value) &&
+    isInteger(value.stage_number) &&
+    isString(value.name) &&
+    isString(value.label) &&
+    isString(value.status) &&
+    isString(value.detail) &&
+    isRecord(value.payload)
+  );
+}
+
+export function isJudgeDemoResponse(
+  value: unknown,
+): value is import('@/types/api').JudgeDemoResponse {
+  return (
+    isRecord(value) &&
+    isSyntheticNotice(value) &&
+    isString(value.case_id) &&
+    isString(value.payment_id) &&
+    isMoney(value.amount) &&
+    isString(value.evidence_source) &&
+    isBoolean(value.is_real_razorpay) &&
+    isString(value.ai_root_cause) &&
+    isFiniteNumber(value.ai_confidence) &&
+    isString(value.ai_recommended_action) &&
+    isString(value.ai_reasoning) &&
+    isString(value.final_case_state) &&
+    isMoney(value.recovered_amount) &&
+    isBoolean(value.is_recovered) &&
+    Array.isArray(value.stages) &&
+    value.stages.every(isJudgeDemoStage)
+  );
+}
+

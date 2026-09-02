@@ -17,7 +17,7 @@ from app.schemas.gateway import (
     RazorpayWebhookResponse,
 )
 from app.schemas.payment import PaymentRead
-from app.services.gateway_payment_service import GatewayPaymentService
+from app.services.gateway_payment_service import GatewayPaymentService, GatewaySignatureInvalid
 
 router = APIRouter(prefix="/gateway/razorpay", tags=["razorpay-sandbox"])
 
@@ -84,7 +84,15 @@ async def receive_webhook(
     delivery_id: Annotated[str | None, Header(alias="X-Razorpay-Event-Id")] = None,
 ) -> RazorpayWebhookResponse:
     """Verify the exact request bytes before parsing or persisting a delivery."""
+    # Max 64KB limit for webhooks to prevent memory exhaustion attacks
+    content_length = request.headers.get("content-length")
+    if content_length and content_length.isdigit() and int(content_length) > 65_536:
+        raise GatewaySignatureInvalid()
+
     raw_body = await request.body()
+    if len(raw_body) > 65_536:
+        raise GatewaySignatureInvalid()
+
     result = GatewayPaymentService(session, clock, settings, client).process_webhook(
         raw_body=raw_body,
         signature=signature,

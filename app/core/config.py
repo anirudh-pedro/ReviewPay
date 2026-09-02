@@ -191,6 +191,8 @@ class Settings(BaseSettings):
     local_model_training_steps: int = 240
     local_model_learning_rate: float = 0.12
     ai_diagnosis_provider: str = "local_mock"
+    ai_copilot_provider: str = "local_mock"
+    rate_limit_requests_per_minute: int = 120
     default_currency: str = "INR"
 
     # Razorpay is an opt-in Sandbox gateway path. Simulator execution remains the default.

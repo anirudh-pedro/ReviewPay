@@ -1,5 +1,6 @@
 import {
   Activity,
+  Award,
   Beaker,
   Bot,
   ChevronRight,
@@ -8,18 +9,16 @@ import {
   LayoutDashboard,
   Menu,
   RotateCcw,
-  ServerCog,
   X,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { getClock, getHealth } from '@/api';
-import { useDemoData } from '@/contexts/DemoDataContext';
 import { useApi } from '@/hooks/useApi';
 import { DemoResetModal } from './DemoResetModal';
 import { formatDateTime } from '@/utils/format';
-import { Button, StatusBadge, buttonClassName, cx } from './ui';
+import { Button, StatusBadge, cx } from './ui';
 
 interface NavigationItem {
   label: string;
@@ -30,32 +29,34 @@ interface NavigationItem {
 
 const navigation: NavigationItem[] = [
   {
-    label: 'Command Center',
-    detail: 'Executive dashboard',
+    label: 'Dashboard',
+    detail: 'Executive KPIs',
     to: '/command-center',
     icon: LayoutDashboard,
   },
-  { label: 'Cases', detail: 'Recovery queue', to: '/cases', icon: Activity },
-  { label: 'Autopilot', detail: 'Batch operations', to: '/autopilot', icon: Bot },
-  { label: 'Strategy Lab', detail: 'What-if analysis', to: '/strategy-lab', icon: Beaker },
-  { label: 'Live Gateway Demo', detail: 'Razorpay Sandbox', to: '/live-gateway-demo', icon: CreditCard },
+  { label: 'Recovery Cases', detail: 'Queue & detail', to: '/cases', icon: Activity },
+  { label: 'Judge Demo', detail: '8-stage proof flow', to: '/judge-demo', icon: Award },
+  { label: 'Autopilot', detail: 'Batch automation', to: '/autopilot', icon: Bot },
+  { label: 'Strategy Lab', detail: 'What-if simulation', to: '/strategy-lab', icon: Beaker },
+  { label: 'Razorpay Sandbox', detail: 'Gateway test', to: '/live-gateway-demo', icon: CreditCard },
 ];
 
 const pageDetails: Record<string, { title: string; description: string }> = {
   '/command-center': {
-    title: 'Command Center',
-    description: 'Synthetic revenue recovery at a glance.',
+    title: 'Executive Dashboard',
+    description: 'Real-time synthetic revenue recovery performance & KPIs.',
   },
-  '/cases': { title: 'Cases', description: 'Recovery case operations.' },
-  '/autopilot': { title: 'Autopilot', description: 'Batch recovery operations.' },
-  '/strategy-lab': { title: 'Strategy Lab', description: 'Compare server-evaluated strategies.' },
-  '/live-gateway-demo': { title: 'Live Gateway Demo', description: 'Isolated Razorpay Sandbox Checkout.' },
+  '/cases': { title: 'Recovery Cases', description: 'Interactive case operations and evidence inspection.' },
+  '/judge-demo': { title: 'Judge Demo Flow', description: 'Buildathon 8-stage proof verification pipeline.' },
+  '/autopilot': { title: 'Autopilot', description: 'Automated batch recovery operations.' },
+  '/strategy-lab': { title: 'Strategy Lab', description: 'Simulate & compare recovery strategies.' },
+  '/live-gateway-demo': { title: 'Razorpay Sandbox', description: 'Isolated Razorpay Sandbox Checkout integration.' },
 };
 
 function BrandMark() {
   return (
-    <div className="grid size-9 place-items-center rounded-xl border border-accent/30 bg-accent/10 shadow-[0_0_22px_-8px_rgba(56,189,248,0.7)]">
-      <svg aria-hidden="true" className="size-5 text-accent" fill="none" viewBox="0 0 24 24">
+    <div className="grid size-9 place-items-center rounded-xl border border-sky-400/30 bg-sky-500/10 shadow-[0_0_22px_-8px_rgba(56,189,248,0.7)]">
+      <svg aria-hidden="true" className="size-5 text-sky-400" fill="none" viewBox="0 0 24 24">
         <path d="M5 12.5 9.2 16.7 19 6.8" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.3" />
         <path d="M5 7.5h5.25" stroke="currentColor" strokeLinecap="round" strokeWidth="2" />
       </svg>
@@ -73,23 +74,21 @@ function NavigationList({ onNavigate }: { onNavigate?: () => void }) {
             key={item.to}
             className={({ isActive }) =>
               cx(
-                'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+                'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400',
                 isActive
-                  ? 'bg-accent/10 text-sky-200 shadow-[inset_2px_0_0_0_#38bdf8]'
-                  : 'text-slate-400 hover:bg-white/[0.035] hover:text-slate-100',
+                  ? 'bg-sky-500/15 font-semibold text-sky-300 border border-sky-400/20'
+                  : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200',
               )
             }
-            onClick={onNavigate}
             to={item.to}
+            onClick={onNavigate}
           >
-            <Icon aria-hidden="true" className="size-[18px] shrink-0" />
-            <span className="min-w-0 flex-1">
-              <span className="block font-medium">{item.label}</span>
-              <span className="mt-0.5 block truncate text-[0.68rem] text-slate-500 group-[.active]:text-sky-300/70">
-                {item.detail}
-              </span>
-            </span>
-            <ChevronRight aria-hidden="true" className="size-3.5 opacity-0 transition-opacity group-hover:opacity-70" />
+            <Icon aria-hidden="true" className="size-4 shrink-0 transition-transform group-hover:scale-105" />
+            <div className="flex-1 truncate">
+              <div className="leading-tight">{item.label}</div>
+              <div className="text-[0.68rem] font-normal text-slate-500">{item.detail}</div>
+            </div>
+            <ChevronRight aria-hidden="true" className="size-3.5 opacity-0 transition-opacity group-hover:opacity-100" />
           </NavLink>
         );
       })}
@@ -97,144 +96,114 @@ function NavigationList({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
-function Sidebar({ mobile = false, onNavigate }: { mobile?: boolean; onNavigate?: () => void }) {
-  return (
-    <div className={cx('flex h-full flex-col bg-ink-900', mobile ? 'w-[min(19rem,calc(100vw-3rem))]' : 'w-60')}>
-      <div className="flex h-[73px] items-center gap-3 border-b border-white/[0.06] px-5">
-        <BrandMark />
-        <div>
-          <p className="text-sm font-bold tracking-tight text-slate-100">RevivePay</p>
-          <p className="mt-0.5 text-[0.66rem] font-medium uppercase tracking-[0.16em] text-slate-500">Command Center</p>
-        </div>
-      </div>
-      <div className="flex-1 py-5">
-        <p className="mb-2 px-6 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-slate-500">Workspace</p>
-        <NavigationList onNavigate={onNavigate} />
-      </div>
-      <div className="m-3 rounded-xl border border-white/[0.06] bg-white/[0.025] p-3">
-        <div className="flex items-center gap-2 text-xs font-semibold text-slate-300">
-          <ServerCog aria-hidden="true" className="size-3.5 text-accent" />
-          Simulation environment
-        </div>
-        <p className="mt-1.5 text-xs leading-5 text-slate-500">All recovery figures are synthetic. No real money moves.</p>
-      </div>
-    </div>
-  );
-}
-
-function ServiceStatus() {
-  const { dataVersion } = useDemoData();
-  const health = useApi(getHealth, [dataVersion]);
-  const clock = useApi(getClock, [dataVersion]);
-  const isHealthy = health.data?.status.toLowerCase() === 'ok';
-
-  return (
-    <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-      <div className="hidden min-w-0 items-center gap-2 rounded-lg border border-white/[0.06] bg-ink-850 px-2.5 py-1.5 sm:flex">
-        <Clock3 aria-hidden="true" className="size-3.5 shrink-0 text-slate-400" />
-        <div className="min-w-0">
-          <p className="text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-slate-500">Virtual clock</p>
-          <time
-            className="block truncate font-mono text-[0.68rem] tabular-nums text-slate-300"
-            dateTime={clock.data?.virtual_clock_time}
-          >
-            {clock.data ? formatDateTime(clock.data.virtual_clock_time) : clock.error ? 'Clock unavailable' : 'Syncing clock…'}
-          </time>
-        </div>
-      </div>
-      <StatusBadge tone={health.loading ? 'neutral' : isHealthy ? 'success' : 'danger'}>
-        <span
-          aria-hidden="true"
-          className={cx(
-            'size-1.5 rounded-full',
-            health.loading ? 'bg-slate-500' : isHealthy ? 'bg-recovered shadow-[0_0_8px_#22c55e]' : 'bg-blocked',
-          )}
-        />
-        <span className="hidden sm:inline">{health.loading ? 'Checking API' : isHealthy ? 'API online' : 'API offline'}</span>
-        <span className="sm:hidden">{isHealthy ? 'Live' : health.loading ? 'Sync' : 'Offline'}</span>
-      </StatusBadge>
-    </div>
-  );
-}
-
 export function AppShell() {
   const location = useLocation();
-  const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const [demoResetOpen, setDemoResetOpen] = useState(false);
-  const currentPage = location.pathname.startsWith('/cases/')
-    ? {
-        title: 'Case Intelligence',
-        description: 'Decision, policy, execution, and audit evidence.',
-      }
-    : pageDetails[location.pathname] ?? pageDetails['/command-center'];
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [resetModalOpen, setResetModalOpen] = useState(false);
+
+  const healthQuery = useApi(getHealth, []);
+  const clockQuery = useApi(getClock, []);
+
+  const page = pageDetails[location.pathname] ?? {
+    title: 'RevivePay Command Center',
+    description: 'AI Revenue Recovery Platform',
+  };
 
   return (
-    <div className="min-h-screen bg-ink-950 text-slate-100">
-      {demoResetOpen ? <DemoResetModal onClose={() => setDemoResetOpen(false)} /> : null}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden border-r border-white/[0.06] lg:block">
-        <Sidebar />
-      </aside>
-
-      {mobileNavOpen ? (
-        <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-label="Navigation menu" aria-modal="true">
-          <button
-            aria-label="Close navigation menu"
-            className="absolute inset-0 bg-black/65 backdrop-blur-[2px]"
-            onClick={() => setMobileNavOpen(false)}
-            type="button"
-          />
-          <div className="relative h-full shadow-2xl shadow-black/50">
-            <Button
-              aria-label="Close navigation menu"
-              className="absolute right-3 top-4 z-10"
-              size="sm"
-              variant="ghost"
-              onClick={() => setMobileNavOpen(false)}
-            >
-              <X aria-hidden="true" className="size-4" />
-            </Button>
-            <Sidebar mobile onNavigate={() => setMobileNavOpen(false)} />
+    <div className="flex min-h-screen bg-slate-950 text-slate-100">
+      {/* Desktop Sidebar */}
+      <aside className="hidden w-64 shrink-0 flex-col border-r border-white/[0.06] bg-slate-900/60 backdrop-blur-xl lg:flex">
+        <div className="flex h-16 items-center gap-3 px-5 border-b border-white/[0.06]">
+          <BrandMark />
+          <div>
+            <span className="font-bold tracking-tight text-slate-50">RevivePay</span>
+            <span className="ml-2 font-mono text-[0.625rem] text-sky-400 uppercase tracking-widest">v0.4.0</span>
           </div>
         </div>
-      ) : null}
 
-      <div className="min-h-screen lg:pl-60">
-        <header className="sticky top-0 z-20 border-b border-white/[0.06] bg-ink-950/85 backdrop-blur-xl">
-          <div className="flex min-h-[73px] items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
-            <div className="flex min-w-0 items-center gap-2.5">
-              <Button
-                aria-expanded={mobileNavOpen}
-                aria-label="Open navigation menu"
-                className="lg:hidden"
-                size="sm"
-                variant="ghost"
-                onClick={() => setMobileNavOpen(true)}
-              >
-                <Menu aria-hidden="true" className="size-4" />
-              </Button>
-              <div className="min-w-0">
-                <p className="truncate text-base font-semibold tracking-tight text-slate-100">{currentPage.title}</p>
-                <p className="hidden truncate text-xs text-slate-500 sm:block">{currentPage.description}</p>
-              </div>
-            </div>
-            <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-              <ServiceStatus />
-              <button
-                className={buttonClassName('secondary', 'sm', 'hidden md:inline-flex')}
-                title="Reset the local deterministic demo dataset and virtual clock."
-                type="button"
-                onClick={() => setDemoResetOpen(true)}
-              >
-                <RotateCcw aria-hidden="true" className="size-3.5" />
-                Demo reset
-              </button>
+        <div className="flex-1 overflow-y-auto py-4">
+          <NavigationList />
+        </div>
+
+        <div className="border-t border-white/[0.06] p-4">
+          <Button
+            className="w-full justify-start text-slate-300 hover:text-white"
+            size="sm"
+            variant="ghost"
+            onClick={() => setResetModalOpen(true)}
+          >
+            <RotateCcw aria-hidden="true" className="size-3.5" />
+            Reseed Demo Scenarios
+          </Button>
+        </div>
+      </aside>
+
+      {/* Main Content Area */}
+      <div className="flex flex-1 flex-col overflow-hidden">
+        {/* Top App Bar */}
+        <header className="flex h-16 items-center justify-between border-b border-white/[0.06] bg-slate-900/40 px-4 sm:px-6 backdrop-blur-md">
+          <div className="flex items-center gap-3">
+            <button
+              aria-label="Open mobile navigation"
+              className="grid size-9 place-items-center rounded-lg border border-white/[0.08] bg-slate-800/60 text-slate-300 lg:hidden"
+              type="button"
+              onClick={() => setMobileMenuOpen(true)}
+            >
+              <Menu aria-hidden="true" className="size-5" />
+            </button>
+            <div>
+              <h1 className="text-base font-semibold tracking-tight text-slate-100 sm:text-lg">
+                {page.title}
+              </h1>
             </div>
           </div>
+
+          <div className="flex items-center gap-3">
+            {clockQuery.data?.virtual_clock_time ? (
+              <div className="hidden items-center gap-1.5 font-mono text-xs text-slate-400 sm:flex">
+                <Clock3 aria-hidden="true" className="size-3.5 text-sky-400" />
+                <span>Sim: {formatDateTime(clockQuery.data.virtual_clock_time)}</span>
+              </div>
+            ) : null}
+
+            <StatusBadge tone="info">
+              {healthQuery.data?.environment_profile ?? 'DEMO'} MODE
+            </StatusBadge>
+          </div>
         </header>
-        <main className="mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-          <Outlet />
+
+        {/* Mobile Navigation Drawer */}
+        {mobileMenuOpen ? (
+          <div className="fixed inset-0 z-50 flex bg-black/80 lg:hidden">
+            <div className="w-72 border-r border-white/[0.08] bg-slate-900 p-4">
+              <div className="flex items-center justify-between pb-4">
+                <div className="flex items-center gap-3">
+                  <BrandMark />
+                  <span className="font-bold text-slate-100">RevivePay</span>
+                </div>
+                <button
+                  aria-label="Close menu"
+                  className="rounded-lg p-2 text-slate-400 hover:text-white"
+                  type="button"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <X aria-hidden="true" className="size-5" />
+                </button>
+              </div>
+              <NavigationList onNavigate={() => setMobileMenuOpen(false)} />
+            </div>
+          </div>
+        ) : null}
+
+        {/* Page Body */}
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+          <div className="mx-auto max-w-7xl">
+            <Outlet />
+          </div>
         </main>
       </div>
+
+      {resetModalOpen ? <DemoResetModal onClose={() => setResetModalOpen(false)} /> : null}
     </div>
   );
 }

@@ -121,6 +121,8 @@ export interface HealthResponse {
   environment: string;
   virtual_clock_time: string;
   data_source: string;
+  environment_profile?: string;
+  authentication_mode?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -723,3 +725,40 @@ export interface IntelligenceModelStatusResponse extends SyntheticNotice {
   feature_schema_version: string;
   training: IntelligenceModelTraining;
 }
+
+export interface JudgeDemoStage {
+  stage_number: number;
+  name: string;
+  label: string;
+  status: 'PASSED' | 'BLOCKED' | 'ESCALATED' | 'INFO' | string;
+  detail: string;
+  payload: Record<string, unknown>;
+}
+
+export interface JudgeDemoResponse extends SyntheticNotice {
+  case_id: string;
+  payment_id: string;
+  amount: Money;
+  evidence_source: string;
+  is_real_razorpay: boolean;
+  razorpay_order_id: string | null;
+  razorpay_payment_id: string | null;
+  ai_root_cause: string;
+  ai_confidence: number;
+  ai_recommended_action: string;
+  ai_reasoning: string;
+  selected_action: string | null;
+  expected_recovery_value: Money | null;
+  gross_recovery: Money | null;
+  intervention_cost: Money | null;
+  friction_penalty: Money | null;
+  policy_outcome: string | null;
+  policy_rule_id: string | null;
+  policy_reason: string | null;
+  final_case_state: string;
+  execution_status: string | null;
+  recovered_amount: Money;
+  is_recovered: boolean;
+  stages: JudgeDemoStage[];
+}
+
