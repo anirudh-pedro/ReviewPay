@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Request
 from sqlalchemy import delete, func, select
 
 from app.api.auth import OperationsPrincipalDep
@@ -41,6 +41,9 @@ from app.schemas.customer_recovery import (
     CustomerRecoveryViewResponse,
     SendRecoveryEmailRequest,
     SendRecoveryEmailResponse,
+    VoiceRecoveryRequest,
+    VoiceRecoveryResponse,
+    VoiceStatusWebhookResponse,
 )
 from app.schemas.recovery import (
     AuditEventRead,
@@ -561,6 +564,108 @@ def send_recovery_email(
         message_id=result.message_id,
         mailto_fallback_url=mailto_url,
         error=result.error,
+    )
+
+
+@router.post(
+    "/cases/{case_id}/voice",
+    response_model=VoiceRecoveryResponse,
+    summary="Initiate Exotel outbound voice recovery call",
+)
+def trigger_voice_recovery(
+    case_id: str,
+    payload: VoiceRecoveryRequest,
+    session: SessionDep,
+    clock: ClockDep,
+    settings: SettingsDep,
+) -> VoiceRecoveryResponse:
+    from app.services.voice_recovery import VoiceRecoveryService
+
+    service = VoiceRecoveryService(session=session, clock=clock, settings=settings)
+    result = service.trigger_voice_recovery(
+        case_id=case_id,
+        customer_phone=payload.customer_phone,
+        customer_name=payload.customer_name,
+        portal_base_url=payload.portal_base_url,
+    )
+
+    return VoiceRecoveryResponse(**result)
+
+
+@router.post(
+    "/voice/webhook",
+    response_model=VoiceStatusWebhookResponse,
+    summary="Exotel outbound call status callback",
+)
+async def exotel_voice_webhook(
+    request: Request,
+    session: SessionDep,
+    clock: ClockDep,
+) -> VoiceStatusWebhookResponse:
+    content_type = request.headers.get("content-type", "")
+    if "application/json" in content_type:
+        try:
+            data = await request.json()
+        except Exception:
+            data = {}
+    else:
+        try:
+            form = await request.form()
+            data = dict(form)
+        except Exception:
+            data = {}
+
+    call_id = str(data.get("CallSid") or data.get("CallId") or data.get("Sid") or "")
+    status_str = str(data.get("Status") or data.get("CallStatus") or "").lower()
+    case_id = str(data.get("CustomField") or "")
+
+    if not case_id and call_id:
+        actions = session.execute(
+            select(RecoveryAction).where(RecoveryAction.action_type == ActionType.VOICE_CALL)
+        ).scalars().all()
+        for act in actions:
+            if act.decision_explanation and act.decision_explanation.get("call_id") == call_id:
+                case_id = act.case_id
+                break
+
+    if case_id:
+        case = session.get(RecoveryCase, case_id)
+        if case:
+            audit = AuditService(session, clock)
+            if status_str in ("in-progress", "answered"):
+                audit.record(
+                    case_id=case.case_id,
+                    payment_id=case.payment_id,
+                    stage=WorkflowStage.EXECUTION,
+                    event_type=AuditEventType.VOICE_CALL_ANSWERED,
+                    message=f"Exotel voice call answered by customer (Call SID: {call_id}).",
+                    metadata={"call_id": call_id, "status": status_str},
+                )
+            elif status_str in ("completed",):
+                audit.record(
+                    case_id=case.case_id,
+                    payment_id=case.payment_id,
+                    stage=WorkflowStage.EXECUTION,
+                    event_type=AuditEventType.VOICE_CALL_COMPLETED,
+                    message=f"Exotel voice call completed (Call SID: {call_id}).",
+                    metadata={"call_id": call_id, "status": status_str},
+                )
+            elif status_str in ("failed", "busy", "no-answer", "canceled"):
+                audit.record(
+                    case_id=case.case_id,
+                    payment_id=case.payment_id,
+                    stage=WorkflowStage.EXECUTION,
+                    event_type=AuditEventType.VOICE_CALL_FAILED,
+                    message=f"Exotel voice call ended with status '{status_str}' (Call SID: {call_id}).",
+                    metadata={"call_id": call_id, "status": status_str},
+                )
+            session.commit()
+
+    return VoiceStatusWebhookResponse(
+        received=True,
+        case_id=case_id or None,
+        call_id=call_id or None,
+        status=status_str or None,
     )
 
 

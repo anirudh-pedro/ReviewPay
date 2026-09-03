@@ -33,6 +33,7 @@ class CopilotPayload(BaseModel):
     confidence: float = Field(ge=0.0, le=1.0)
     explanation: str = Field(min_length=8, max_length=1000)
     recommended_action: ActionType
+    recommended_channel: str = Field(default="PAYMENT_LINK")
     strategic_reasoning: str = Field(min_length=8, max_length=1000)
     key_risk_factors: tuple[str, ...] = Field(min_length=1, max_length=8)
 
@@ -46,6 +47,7 @@ class CopilotAnalysis:
     confidence: float
     explanation: str
     recommended_action: ActionType
+    recommended_channel: str
     strategic_reasoning: str
     key_risk_factors: tuple[str, ...]
     provider_name: str
@@ -219,6 +221,7 @@ class AICopilotService:
                 confidence=payload.confidence,
                 explanation=payload.explanation,
                 recommended_action=payload.recommended_action,
+                recommended_channel=payload.recommended_channel,
                 strategic_reasoning=payload.strategic_reasoning,
                 key_risk_factors=payload.key_risk_factors,
                 provider_name=getattr(self._provider, "provider_name", "custom_provider"),
@@ -240,6 +243,7 @@ class AICopilotService:
                 confidence=prediction.confidence,
                 explanation=diagnosis.explanation,
                 recommended_action=rec_action,
+                recommended_channel="VOICE" if context.failure_reason is FailureReason.BANK_TIMEOUT else "PAYMENT_LINK",
                 strategic_reasoning=f"Deterministic fallback reasoning for cause {diagnosis.failure_reason.value}.",
                 key_risk_factors=(
                     "Deterministic fallback used",

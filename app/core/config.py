@@ -215,6 +215,14 @@ class Settings(BaseSettings):
     smtp_password: str | None = None
     email_from: str = "RevivePay Recovery <onboarding@resend.dev>"
 
+    # Exotel Voice Recovery Channel
+    exotel_api_key: str | None = None
+    exotel_api_password: str | None = None
+    exotel_account_sid: str | None = None
+    exotel_subdomain: str = "api.exotel.com"
+    exotel_caller_id: str | None = None
+    exotel_flow_id: str | None = None
+
     @field_validator("environment")
     @classmethod
     def _normalise_environment(cls, value: str) -> str:

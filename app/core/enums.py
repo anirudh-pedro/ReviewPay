@@ -104,6 +104,7 @@ class ActionType(str, Enum):
     SEND_REMINDER = "SEND_REMINDER"
     ESCALATE_HUMAN = "ESCALATE_HUMAN"
     STOP = "STOP"
+    VOICE_CALL = "VOICE_CALL"
 
     @classmethod
     def retry_actions(cls) -> frozenset["ActionType"]:
@@ -204,7 +205,7 @@ class WorkflowStage(str, Enum):
 
 
 class AuditEventType(str, Enum):
-    """The thirteen auditable events of Phase 0 (Requirement 19.1)."""
+    """Auditable events in RevivePay."""
 
     REVENUE_RISK_DETECTED = "REVENUE_RISK_DETECTED"
     DIAGNOSIS_COMPLETED = "DIAGNOSIS_COMPLETED"
@@ -219,6 +220,15 @@ class AuditEventType(str, Enum):
     OUTCOME_VERIFIED = "OUTCOME_VERIFIED"
     REVENUE_RECOVERED = "REVENUE_RECOVERED"
     WORKFLOW_STOPPED = "WORKFLOW_STOPPED"
+
+    # Voice Recovery Channel events
+    VOICE_RECOVERY_REQUESTED = "VOICE_RECOVERY_REQUESTED"
+    VOICE_POLICY_CHECKED = "VOICE_POLICY_CHECKED"
+    VOICE_CALL_INITIATED = "VOICE_CALL_INITIATED"
+    VOICE_CALL_ANSWERED = "VOICE_CALL_ANSWERED"
+    VOICE_CALL_COMPLETED = "VOICE_CALL_COMPLETED"
+    VOICE_CALL_FAILED = "VOICE_CALL_FAILED"
+    VOICE_PAYMENT_LINK_SENT = "VOICE_PAYMENT_LINK_SENT"
 
 
 __all__ = [

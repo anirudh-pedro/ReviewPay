@@ -80,3 +80,34 @@ class SendRecoveryEmailResponse(BaseModel):
     message_id: str | None = None
     mailto_fallback_url: str | None = None
     error: str | None = None
+
+
+class VoiceRecoveryRequest(BaseModel):
+    """Request to initiate an automated Exotel outbound voice recovery call."""
+
+    customer_phone: str = Field(min_length=6, max_length=25, description="Destination phone number")
+    customer_name: str = Field(default="Valued Customer", max_length=100)
+    portal_base_url: str = Field(default="http://localhost:5173", description="Base frontend URL")
+
+
+class VoiceRecoveryResponse(BaseModel):
+    """Result of initiating voice recovery call."""
+
+    case_id: str
+    channel: str = "VOICE"
+    status: str
+    call_id: str | None = None
+    payment_link: str
+    policy_decision: str
+    message: str
+    success: bool
+    error: str | None = None
+
+
+class VoiceStatusWebhookResponse(BaseModel):
+    """Response returned from Exotel status webhook callback."""
+
+    received: bool
+    case_id: str | None = None
+    call_id: str | None = None
+    status: str | None = None

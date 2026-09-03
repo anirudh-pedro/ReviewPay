@@ -292,5 +292,15 @@ export const sendRecoveryEmail = (
     payload,
   );
 
+/** Initiate Exotel outbound voice recovery call. */
+export const triggerVoiceRecovery = (
+  caseId: string,
+  payload: import('@/types/api').VoiceRecoveryRequest,
+) =>
+  apiPost<import('@/types/api').VoiceRecoveryResponse>(
+    `${PREFIX}/recovery/cases/${encodeURIComponent(caseId)}/voice`,
+    payload,
+  );
+
 
 

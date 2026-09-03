@@ -17,15 +17,17 @@ import {
   Mail,
   Lock,
   Send,
+  PhoneCall,
 } from 'lucide-react';
 import { Accordion, Button, Card, CardHeader, StatusBadge } from '@/components/ui';
 import { createRazorpayOrder, verifyRazorpayCheckout, simulateGatewayOrderFailure } from '@/api/gateway';
-import { customerRecover, sendRecoveryEmail } from '@/api/recovery';
+import { customerRecover, sendRecoveryEmail, triggerVoiceRecovery } from '@/api/recovery';
 import type {
   RazorpayOrderResponse,
   RazorpayVerificationResponse,
   GatewayFailureSimulationResponse,
   SendRecoveryEmailResponse,
+  VoiceRecoveryResponse,
   FailureReason,
 } from '@/types/api';
 import { formatMoney } from '@/utils/format';
@@ -143,13 +145,19 @@ export function RecoverySimulatorPage() {
   const [customerRecovering, setCustomerRecovering] = useState(false);
   const [customerRecovered, setCustomerRecovered] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [previewChannel, setPreviewChannel] = useState<'LINK' | 'WHATSAPP' | 'EMAIL'>('LINK');
+  const [previewChannel, setPreviewChannel] = useState<'LINK' | 'WHATSAPP' | 'EMAIL' | 'VOICE'>('LINK');
 
   // Live Dispatch State
   const [recipientEmail, setRecipientEmail] = useState('');
   const [emailSending, setEmailSending] = useState(false);
   const [emailResult, setEmailResult] = useState<SendRecoveryEmailResponse | null>(null);
   const [whatsappPhone, setWhatsappPhone] = useState('');
+
+  // Exotel Voice Channel State
+  const [voicePhone, setVoicePhone] = useState('');
+  const [voiceCalling, setVoiceCalling] = useState(false);
+  const [voiceResult, setVoiceResult] = useState<VoiceRecoveryResponse | null>(null);
+  const [voiceCallStep, setVoiceCallStep] = useState<number>(0);
 
   // Compute active step (1 to 7)
   const currentStep = customerRecovered
@@ -318,6 +326,41 @@ export function RecoverySimulatorPage() {
     );
     const waUrl = cleanPhone ? `https://wa.me/${cleanPhone}?text=${text}` : `https://wa.me/?text=${text}`;
     window.open(waUrl, '_blank');
+  };
+
+  const handleInitiateVoiceRecovery = async () => {
+    if (!takeoverResult?.recovery_case_id || !voicePhone.trim()) return;
+    setVoiceCalling(true);
+    setVoiceResult(null);
+    setVoiceCallStep(1); // Preparing recovery
+    try {
+      setTimeout(() => setVoiceCallStep(2), 600); // Calling customer
+      const res = await triggerVoiceRecovery(takeoverResult.recovery_case_id, {
+        customer_phone: voicePhone.trim(),
+        customer_name: 'Valued Customer',
+        portal_base_url: window.location.origin,
+      });
+      setVoiceResult(res);
+      if (res.success) {
+        setVoiceCallStep(3); // Customer response
+      } else {
+        setVoiceCallStep(0);
+      }
+    } catch (err: unknown) {
+      setVoiceResult({
+        case_id: takeoverResult.recovery_case_id,
+        channel: 'VOICE',
+        status: 'CALL_FAILED',
+        payment_link: `${window.location.origin}/recover/${takeoverResult.recovery_case_id}`,
+        policy_decision: 'REJECTED',
+        message: err instanceof Error ? err.message : 'Failed to initiate voice call',
+        success: false,
+        error: String(err),
+      });
+      setVoiceCallStep(0);
+    } finally {
+      setVoiceCalling(false);
+    }
   };
 
   return (
@@ -674,6 +717,17 @@ export function RecoverySimulatorPage() {
                 >
                   <Mail className="size-3 text-indigo-600" /> Email
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setPreviewChannel('VOICE')}
+                  className={`px-3 py-1.5 rounded-lg font-medium transition cursor-pointer flex items-center gap-1 ${
+                    previewChannel === 'VOICE'
+                      ? 'bg-white text-slate-900 shadow-2xs font-semibold'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <PhoneCall className="size-3 text-purple-600" /> ☎ Voice
+                </button>
               </div>
             </div>
 
@@ -924,6 +978,151 @@ export function RecoverySimulatorPage() {
                         onClick={() => void handleCustomerRecoverInPage()}
                       >
                         <CheckCircle2 className="size-3.5 mr-1" /> Customer Opens Email & Recovers Payment
+                      </Button>
+                      <Link
+                        to={`/recover/${takeoverResult.recovery_case_id}`}
+                        target="_blank"
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-2xs"
+                      >
+                        Open Customer Portal <ExternalLink className="size-3" />
+                      </Link>
+                    </div>
+                  </div>
+                )}
+
+                {/* 4. Voice Recovery Channel (Exotel) */}
+                {previewChannel === 'VOICE' && (
+                  <div className="p-5 rounded-2xl border border-purple-200 bg-purple-50/40 space-y-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-purple-950 font-semibold">
+                      <span className="flex items-center gap-1.5">
+                        <PhoneCall className="size-4 text-purple-600" /> ☎ AI Voice Recovery (Exotel)
+                      </span>
+                      <StatusBadge tone="violet">REAL EXOTEL VOICE</StatusBadge>
+                    </div>
+
+                    {/* Channel Brief & Architecture Invariants */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-white p-3 rounded-xl border border-purple-100 text-[11px]">
+                      <div>
+                        <span className="text-slate-400 block text-[10px] uppercase font-bold">Diagnosis</span>
+                        <strong className="text-slate-800">{takeoverResult.failure_reason.replace('_', ' ')}</strong>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block text-[10px] uppercase font-bold">Recommended Action</span>
+                        <strong className="text-slate-800">Retry Payment via Voice</strong>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block text-[10px] uppercase font-bold">Recommended Channel</span>
+                        <strong className="text-purple-700">Voice (Outbound Call)</strong>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block text-[10px] uppercase font-bold">PolicyEngine Gate</span>
+                        <span className="inline-flex items-center gap-1 text-emerald-700 font-bold">
+                          ✓ ALLOWED (Budget OK)
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Phone Number Input & Launch */}
+                    <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-2xs space-y-3">
+                      <label className="block text-xs font-semibold text-slate-700">
+                        Customer Mobile Number (e.g. 09876543210 or +919876543210)
+                      </label>
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <input
+                          type="tel"
+                          placeholder="Enter customer phone number"
+                          value={voicePhone}
+                          onChange={(e) => setVoicePhone(e.target.value)}
+                          className="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-100 font-mono"
+                        />
+                        <Button
+                          size="sm"
+                          className="bg-purple-600 hover:bg-purple-700 text-white font-semibold shrink-0"
+                          loading={voiceCalling}
+                          disabled={!voicePhone.trim()}
+                          onClick={() => void handleInitiateVoiceRecovery()}
+                        >
+                          <PhoneCall className="size-3.5 mr-1.5" /> Initiate Voice Recovery
+                        </Button>
+                      </div>
+
+                      {/* Live Call Lifecycle Stepper */}
+                      {(voiceCalling || voiceResult || voiceCallStep > 0) && (
+                        <div className="pt-2 border-t border-slate-100">
+                          <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">
+                            CALL INITIATED
+                          </div>
+                          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-[11px]">
+                            <div className="flex items-center gap-1 text-emerald-700 font-medium">
+                              ● Preparing recovery
+                            </div>
+                            <div className={`flex items-center gap-1 ${voiceCallStep >= 2 ? 'text-emerald-700 font-medium' : 'text-slate-400'}`}>
+                              {voiceCallStep >= 2 ? '● Calling customer' : '○ Calling customer'}
+                            </div>
+                            <div className={`flex items-center gap-1 ${voiceCallStep >= 3 ? 'text-emerald-700 font-medium' : 'text-slate-400'}`}>
+                              {voiceCallStep >= 3 ? '● Customer response' : '○ Customer response'}
+                            </div>
+                            <div className={`flex items-center gap-1 ${customerRecovered ? 'text-emerald-700 font-medium' : 'text-slate-400'}`}>
+                              {customerRecovered ? '● Payment' : '○ Payment'}
+                            </div>
+                            <div className={`flex items-center gap-1 ${customerRecovered ? 'text-emerald-700 font-medium' : 'text-slate-400'}`}>
+                              {customerRecovered ? '● Verification' : '○ Verification'}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Result Feedback Banner */}
+                      {voiceResult && (
+                        <div
+                          className={`p-3 rounded-lg border text-xs ${
+                            voiceResult.success
+                              ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                              : 'bg-rose-50 border-rose-200 text-rose-800'
+                          }`}
+                        >
+                          <div className="flex items-center gap-1.5 font-bold">
+                            {voiceResult.success ? (
+                              <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
+                            ) : (
+                              <AlertTriangle className="size-4 text-rose-600 shrink-0" />
+                            )}
+                            {voiceResult.success ? 'Exotel Call Placed Successfully!' : 'Call Initiation Notice'}
+                          </div>
+                          <p className="mt-1 text-[11px] leading-relaxed">
+                            {voiceResult.message}
+                          </p>
+                          {voiceResult.call_id && (
+                            <p className="mt-1 font-mono text-[10px] text-emerald-700">
+                              Exotel Call SID: {voiceResult.call_id}
+                            </p>
+                          )}
+                          <div className="mt-2 text-[10px] text-slate-500 bg-white/60 p-1.5 rounded border border-slate-200">
+                            <strong>Policy Notice:</strong> Voice call is non-custodial. Revenue is only marked recovered when payment is completed via the verified recovery link.
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Voice Script & Link Prompt */}
+                    <div className="max-w-md bg-white border border-slate-200 p-4 rounded-xl shadow-2xs text-xs text-slate-800 space-y-2">
+                      <p className="font-semibold text-slate-900">Spoken Voice Script (Exotel IVR):</p>
+                      <p className="text-slate-600 italic bg-slate-50 p-2.5 rounded-lg border border-slate-100 text-[11px] leading-relaxed">
+                        &ldquo;Hello, this is RevivePay calling regarding your recent payment of {formatMoney(takeoverResult.payment.money)}. Your payment could not be completed because the bank did not respond in time. We have prepared a secure payment link to complete your payment with 1-click UPI.&rdquo;
+                      </p>
+                      <div className="bg-slate-50 p-2 rounded-lg border border-slate-200 font-mono text-[10px] text-indigo-600 break-all">
+                        {`${window.location.origin}/recover/${takeoverResult.recovery_case_id}`}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      <Button
+                        size="sm"
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+                        loading={customerRecovering}
+                        onClick={() => void handleCustomerRecoverInPage()}
+                      >
+                        <CheckCircle2 className="size-3.5 mr-1" /> Customer Completes Payment After Voice Call
                       </Button>
                       <Link
                         to={`/recover/${takeoverResult.recovery_case_id}`}

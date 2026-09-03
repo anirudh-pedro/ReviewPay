@@ -41,7 +41,8 @@ export type ActionType =
   | 'CHANGE_PAYMENT_METHOD'
   | 'SEND_REMINDER'
   | 'ESCALATE_HUMAN'
-  | 'STOP';
+  | 'STOP'
+  | 'VOICE_CALL';
 
 export type FailureReason =
   | 'BANK_TIMEOUT'
@@ -834,6 +835,24 @@ export interface SendRecoveryEmailResponse {
   message: string;
   message_id?: string | null;
   mailto_fallback_url?: string | null;
+  error?: string | null;
+}
+
+export interface VoiceRecoveryRequest {
+  customer_phone: string;
+  customer_name?: string;
+  portal_base_url?: string;
+}
+
+export interface VoiceRecoveryResponse {
+  case_id: string;
+  channel: string;
+  status: string;
+  call_id?: string | null;
+  payment_link: string;
+  policy_decision: string;
+  message: string;
+  success: boolean;
   error?: string | null;
 }
 
