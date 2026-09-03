@@ -5,11 +5,17 @@ from __future__ import annotations
 from typing import Annotated
 
 from fastapi import APIRouter, Header, Request, status
+from sqlalchemy import select
 
 from app.api.auth import OperationsPrincipalDep
 from app.api.deps import ClockDep, RazorpayClientDep, SessionDep, SettingsDep
+from app.core.enums import FailureReason, PaymentMethod, PaymentStatus
+from app.core.errors import RecordNotFound
+from app.models import GatewayPayment
 from app.schemas.common import Money
 from app.schemas.gateway import (
+    GatewayFailureSimulationRequest,
+    GatewayFailureSimulationResponse,
     RazorpayCheckoutVerificationRequest,
     RazorpayOrderCreateRequest,
     RazorpayOrderResponse,
@@ -17,7 +23,11 @@ from app.schemas.gateway import (
     RazorpayWebhookResponse,
 )
 from app.schemas.payment import PaymentRead
+from app.services.audit_service import AuditService
 from app.services.gateway_payment_service import GatewayPaymentService, GatewaySignatureInvalid
+from app.services.payment_service import PaymentService
+from app.services.risk_detector import RiskDetector
+from app.workflows.recovery_workflow import RevenueRecoveryWorkflow
 
 router = APIRouter(prefix="/gateway/razorpay", tags=["razorpay-sandbox"])
 
@@ -73,6 +83,91 @@ def verify_checkout(
     )
 
 
+@router.post(
+    "/orders/{order_id}/simulate-failure",
+    response_model=GatewayFailureSimulationResponse,
+    summary="Simulate a payment failure on a Razorpay Sandbox order and hand over to RevivePay",
+)
+def simulate_order_failure(
+    order_id: str,
+    request: GatewayFailureSimulationRequest,
+    session: SessionDep,
+    clock: ClockDep,
+    settings: SettingsDep,
+    _: OperationsPrincipalDep,
+) -> GatewayFailureSimulationResponse:
+    """Simulate a transaction outcome/failure scenario on a real Sandbox order.
+    
+    RevivePay immediately takes over:
+    1. Detects risk and opens recovery case.
+    2. Diagnoses root cause via AI Recovery Copilot.
+    3. Calculates Expected Recovery Value (ERV).
+    4. Evaluates PolicyEngine rules.
+    5. Executes bounded recovery action and generates customer recovery path.
+    """
+    mapping = session.execute(
+        select(GatewayPayment).where(GatewayPayment.provider_order_id == order_id)
+    ).scalar_one_or_none()
+    if mapping is None:
+        raise RecordNotFound("GatewayOrder", order_id)
+
+    payment = mapping.payment
+    method_str = request.payment_method.lower()
+    payment.payment_method = (
+        PaymentMethod.CARD
+        if method_str == "card"
+        else PaymentMethod.UPI
+        if method_str == "upi"
+        else PaymentMethod.NETBANKING
+    )
+
+    payment_status = (
+        PaymentStatus.ABANDONED
+        if request.failure_reason is FailureReason.CHECKOUT_ABANDONMENT
+        else PaymentStatus.FAILED
+    )
+
+    provider_summary = {
+        "provider": "razorpay",
+        "order_id": order_id,
+        "payment_id": f"pay_sim_{clock.now().strftime('%Y%m%d%H%M%S')}",
+        "status": "failed",
+        "normalized_failure_reason": request.failure_reason.value,
+        "error_description": request.error_description or f"Simulated failure: {request.failure_reason.value}",
+        "event_type": "checkout.failure",
+    }
+
+    PaymentService(session, clock).record_external_checkout_attempt(
+        payment=payment,
+        status=payment_status,
+        failure_reason=request.failure_reason,
+        provider_response=provider_summary,
+    )
+
+    case = RiskDetector(
+        session=session,
+        clock=clock,
+        audit=AuditService(session=session, clock=clock),
+    ).detect_and_open_case(payment)
+    session.flush()
+
+    # RevivePay autonomous takeover: run 1 cycle of RevenueRecoveryWorkflow
+    workflow = RevenueRecoveryWorkflow(session=session, clock=clock, settings=settings)
+    run = workflow.run(case.case_id)
+    session.commit()
+
+    return GatewayFailureSimulationResponse(
+        payment=PaymentRead.from_model(payment),
+        recovery_case_id=case.case_id,
+        recovery_case_state=case.state.value,
+        failure_reason=request.failure_reason,
+        diagnosis_explanation=run.message or f"RevivePay diagnosed {request.failure_reason.value}.",
+        selected_action=run.selected_action,
+        policy_outcome=run.policy.outcome.value if run.policy else "APPROVED",
+        customer_recovery_url=f"/recover/{case.case_id}",
+    )
+
+
 @router.post("/webhooks", response_model=RazorpayWebhookResponse, include_in_schema=False)
 async def receive_webhook(
     request: Request,
@@ -84,7 +179,6 @@ async def receive_webhook(
     delivery_id: Annotated[str | None, Header(alias="X-Razorpay-Event-Id")] = None,
 ) -> RazorpayWebhookResponse:
     """Verify the exact request bytes before parsing or persisting a delivery."""
-    # Max 64KB limit for webhooks to prevent memory exhaustion attacks
     content_length = request.headers.get("content-length")
     if content_length and content_length.isdigit() and int(content_length) > 65_536:
         raise GatewaySignatureInvalid()

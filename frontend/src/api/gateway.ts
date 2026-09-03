@@ -42,3 +42,14 @@ export function verifyRazorpayCheckout(
     isRazorpayVerificationResponse,
   );
 }
+
+export function simulateGatewayOrderFailure(
+  orderId: string,
+  request: import('@/types/api').GatewayFailureSimulationRequest,
+): Promise<import('@/types/api').GatewayFailureSimulationResponse> {
+  return apiPost<import('@/types/api').GatewayFailureSimulationResponse>(
+    `${PREFIX}/gateway/razorpay/orders/${orderId}/simulate-failure`,
+    request,
+  );
+}
+

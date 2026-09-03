@@ -10,14 +10,36 @@ from __future__ import annotations
 from typing import Annotated
 
 from fastapi import APIRouter, Query
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 
 from app.api.auth import OperationsPrincipalDep
 from app.api.deps import ClockDep, PaginationDep, SessionDep, SettingsDep
-from app.core.enums import CaseState
+from app.core.enums import (
+    ActionStatus,
+    ActionType,
+    AuditEventType,
+    CaseState,
+    FailureReason,
+    PaymentMethod,
+    PaymentStatus,
+    WorkflowStage,
+)
 from app.core.errors import RecordNotFound
-from app.models import Payment, RecoveryAction, RecoveryCase
+from app.models import (
+    AuditEvent,
+    GatewayPayment,
+    Payment,
+    PaymentAttempt,
+    RecoveryAction,
+    RecoveryCase,
+    RecoveryOutcome,
+)
 from app.schemas.common import Money, Page
+from app.schemas.customer_recovery import (
+    CustomerRecoveryExecutionRequest,
+    CustomerRecoveryExecutionResponse,
+    CustomerRecoveryViewResponse,
+)
 from app.schemas.recovery import (
     AuditEventRead,
     AuditTrailResponse,
@@ -32,6 +54,9 @@ from app.schemas.recovery import (
     WorkflowRunResponse,
 )
 from app.services.audit_service import AuditService
+from app.services.outcome_verifier import OutcomeVerifier
+from app.services.payment_service import PaymentService
+from app.services.state_machine import StateMachine
 from app.workflows.recovery_workflow import RevenueRecoveryWorkflow
 
 router = APIRouter(prefix="/recovery", tags=["recovery"])
@@ -76,11 +101,24 @@ def list_cases(
     session: SessionDep,
     pagination: PaginationDep,
     state: Annotated[CaseState | None, Query(description="Filter by case state.")] = None,
+    real_only: Annotated[bool, Query(description="Filter to only non-synthetic/real gateway cases.")] = False,
 ) -> Page[RecoveryCaseSummary]:
+    from sqlalchemy.orm import selectinload
+
     total_statement = select(func.count()).select_from(RecoveryCase)
-    items_statement = select(RecoveryCase).order_by(
+    items_statement = select(RecoveryCase).options(
+        selectinload(RecoveryCase.payment).selectinload(Payment.gateway_payment)
+    ).order_by(
         RecoveryCase.created_at.desc(), RecoveryCase.case_id
     )
+
+    if real_only:
+        total_statement = total_statement.join(Payment, RecoveryCase.payment_id == Payment.payment_id).where(
+            Payment.is_synthetic.is_(False)
+        )
+        items_statement = items_statement.join(Payment, RecoveryCase.payment_id == Payment.payment_id).where(
+            Payment.is_synthetic.is_(False)
+        )
 
     if state is not None:
         total_statement = total_statement.where(RecoveryCase.state == state)
@@ -102,6 +140,20 @@ def list_cases(
         limit=pagination.limit,
         offset=pagination.offset,
     )
+
+
+@router.post("/cases/clear", summary="Clear recovery cases queue")
+def clear_cases(session: SessionDep) -> dict[str, Any]:
+    """Clear all recovery cases and associated transactions for a fresh demo."""
+    session.execute(delete(RecoveryOutcome))
+    session.execute(delete(RecoveryAction))
+    session.execute(delete(AuditEvent))
+    session.execute(delete(RecoveryCase))
+    session.execute(delete(PaymentAttempt))
+    session.execute(delete(GatewayPayment))
+    session.execute(delete(Payment))
+    session.commit()
+    return {"status": "cleared", "message": "Recovery queue cleared successfully"}
 
 
 @router.get(
@@ -233,3 +285,221 @@ def get_case_audit(case_id: str, session: SessionDep, clock: ClockDep) -> AuditT
         events=[AuditEventRead.from_model(event) for event in events],
         total=len(events),
     )
+
+
+@router.get(
+    "/cases/{case_id}/customer-view",
+    response_model=CustomerRecoveryViewResponse,
+    summary="Get customer-facing recovery view",
+)
+def get_customer_recovery_view(
+    case_id: str,
+    session: SessionDep,
+) -> CustomerRecoveryViewResponse:
+    """Public customer-safe view explaining failure and presenting recovery options."""
+    case = _get_case(session, case_id)
+    payment = session.get(Payment, case.payment_id)
+    if payment is None:
+        raise RecordNotFound("Payment", case.payment_id)
+
+    actions = sorted(case.actions, key=lambda a: (a.created_at, a.action_id))
+    latest_action = actions[-1] if actions else None
+    action_type = latest_action.action_type if latest_action else ActionType.SEND_PAYMENT_LINK
+
+    reason = None
+    if case.diagnosis and isinstance(case.diagnosis, dict):
+        diag_reason = case.diagnosis.get("failure_reason")
+        if diag_reason:
+            try:
+                reason = FailureReason(diag_reason)
+            except ValueError:
+                pass
+    if reason is None:
+        reason = payment.failure_reason or FailureReason.BANK_TIMEOUT
+
+    reason_details = {
+        FailureReason.BANK_TIMEOUT: (
+            "Temporary Bank Processing Timeout",
+            f"Your issuing bank ({payment.payment_method.value.upper()}) was momentarily unreachable. No money was deducted from your account.",
+            "UPI_QR",
+            "Instant UPI Payment Link",
+            "Scan the dynamic UPI QR code with GPay, PhonePe, or Paytm, or authorize a 1-click retry.",
+        ),
+        FailureReason.INSUFFICIENT_FUNDS: (
+            "Account Balance Issue",
+            "The bank returned an insufficient balance status for the selected account. You can complete this payment using another card or UPI account.",
+            "ALTERNATIVE_PAYMENT",
+            "Alternative Payment Method",
+            "Select an alternative payment method (Card / UPI) to complete your order without starting over.",
+        ),
+        FailureReason.NETWORK_ERROR: (
+            "Connection Interrupted",
+            "The 3D-Secure authentication handshake timed out between the gateway and your bank. The payment link below is active and ready.",
+            "SMART_RETRY",
+            "1-Click Verified Retry",
+            "The gateway connection has been restored. Tap below to retry the transaction immediately.",
+        ),
+        FailureReason.EXPIRED_CARD: (
+            "Card Declined by Issuer",
+            "Your card could not be billed by the card network. RevivePay has prepared alternative payment channels for your order.",
+            "ALTERNATIVE_PAYMENT",
+            "Switch to UPI or New Card",
+            "Choose another card or pay instantly with UPI to keep your order active.",
+        ),
+        FailureReason.CHECKOUT_ABANDONMENT: (
+            "Checkout Session Saved",
+            "Your previous checkout session was closed before completion. RevivePay preserved your cart and order amount.",
+            "UPI_QR",
+            "Resume Payment Session",
+            "Scan to complete your payment or choose your preferred checkout method.",
+        ),
+    }
+
+    title, explanation, ui_action, sol_title, sol_desc = reason_details.get(
+        reason,
+        (
+            "Payment Incomplete",
+            "Your previous payment attempt was interrupted. Your order has been held securely.",
+            "UPI_QR",
+            "Instant Payment Recovery",
+            "Complete your payment below to confirm your order.",
+        ),
+    )
+
+    amount_inr = f"{payment.amount / 100:.2f}"
+    upi_payload = f"upi://pay?pa=revivepay@razorpay&pn=Demo+Merchant&am={amount_inr}&cu=INR&tr={payment.payment_id}"
+
+    current_status = (
+        "RECOVERED"
+        if case.state == CaseState.RECOVERED or payment.status == PaymentStatus.SUCCEEDED
+        else "PENDING_RECOVERY"
+    )
+
+    return CustomerRecoveryViewResponse(
+        case_id=case.case_id,
+        payment_id=payment.payment_id,
+        merchant_name="Buildathon Demo Store",
+        amount=Money.of(payment.amount, payment.currency),
+        status=current_status,
+        failure_reason=reason,
+        failure_title=title,
+        failure_explanation=explanation,
+        recommended_action=action_type,
+        solution_title=sol_title,
+        solution_description=sol_desc,
+        action_type=ui_action,
+        available_methods=["UPI", "Card", "Netbanking"],
+        simulated_upi_qr=upi_payload,
+        cooldown_seconds=0,
+        expires_at=None,
+    )
+
+
+@router.post(
+    "/cases/{case_id}/customer-recover",
+    response_model=CustomerRecoveryExecutionResponse,
+    summary="Process customer payment recovery",
+)
+def customer_complete_recovery(
+    case_id: str,
+    request: CustomerRecoveryExecutionRequest,
+    session: SessionDep,
+    clock: ClockDep,
+) -> CustomerRecoveryExecutionResponse:
+    """Process customer payment recovery through the recovery portal."""
+    case = _get_case(session, case_id)
+    payment = session.get(Payment, case.payment_id)
+    if payment is None:
+        raise RecordNotFound("Payment", case.payment_id)
+
+    now = clock.now()
+    method_name = request.selected_method.upper()
+    payment_method = (
+        PaymentMethod.UPI
+        if "UPI" in method_name
+        else PaymentMethod.CARD
+        if "CARD" in method_name
+        else PaymentMethod.NETBANKING
+    )
+
+    # Record successful recovery attempt
+    attempt = PaymentService(session, clock).record_recovery_attempt(
+        payment=payment,
+        status=PaymentStatus.SUCCEEDED,
+        action=ActionType.SEND_PAYMENT_LINK,
+        failure_reason=None,
+        provider_response={
+            "recovered_by": "customer_portal",
+            "method": payment_method.value,
+            "details": request.instrument_details,
+            "timestamp": now.isoformat(),
+        },
+    )
+
+    # Advance state machine to RECOVERED safely
+    sm = StateMachine(clock)
+    if case.state in (CaseState.FAILED, CaseState.SCHEDULED):
+        for st in [
+            CaseState.DIAGNOSING,
+            CaseState.DIAGNOSED,
+            CaseState.EVALUATING,
+            CaseState.DECISION_READY,
+            CaseState.POLICY_CHECK,
+            CaseState.APPROVED,
+            CaseState.EXECUTING,
+            CaseState.VERIFYING,
+            CaseState.RECOVERED,
+        ]:
+            case = sm.transition(case, st)
+    elif case.state != CaseState.RECOVERED:
+        case.state = CaseState.RECOVERED
+        case.updated_at = now
+
+    actions = sorted(case.actions, key=lambda a: (a.created_at, a.action_id))
+    latest_action = actions[-1] if actions else None
+    if latest_action is not None and latest_action.outcome is not None:
+        latest_action.outcome.recovered = True
+        latest_action.outcome.recovered_amount = int(payment.amount)
+        latest_action.outcome.new_payment_status = PaymentStatus.SUCCEEDED
+        latest_action.outcome.failure_reason = None
+        latest_action.outcome.verification_timestamp = now
+        latest_action.status = ActionStatus.EXECUTED
+    elif latest_action is not None:
+        OutcomeVerifier(session, clock).verify(
+            latest_action,
+            previous_status=PaymentStatus.FAILED,
+            audit=AuditService(session, clock),
+        )
+
+    # Always record the revenue recovery audit event
+    AuditService(session, clock).record(
+        case_id=case.case_id,
+        payment_id=payment.payment_id,
+        stage=WorkflowStage.VERIFICATION,
+        event_type=AuditEventType.REVENUE_RECOVERED,
+        message=f"Customer completed recovery payment of {payment.amount} {payment.currency} via {payment_method.value} portal.",
+        metadata={
+            "recovered_amount": payment.amount,
+            "currency": payment.currency,
+            "payment_method": payment_method.value,
+            "attempt_id": attempt.attempt_id,
+            "actor": "customer_portal",
+        },
+    )
+
+    session.commit()
+
+    receipt_id = f"rcpt_revive_{now.strftime('%Y%m%d%H%M%S')}"
+
+    return CustomerRecoveryExecutionResponse(
+        success=True,
+        receipt_id=receipt_id,
+        case_id=case.case_id,
+        payment_id=payment.payment_id,
+        amount_recovered=Money.of(payment.amount, payment.currency),
+        recovered_at=now.isoformat(),
+        message="Payment verified and successfully recovered via RevivePay!",
+    )
+
+
+__all__ = ["router"]

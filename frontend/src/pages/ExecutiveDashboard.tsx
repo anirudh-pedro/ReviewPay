@@ -1,12 +1,10 @@
 import {
   Activity,
-  Award,
   BarChart3,
   CheckCircle2,
   Clock3,
   DollarSign,
   ShieldAlert,
-  ShieldCheck,
   TrendingUp,
   Zap,
 } from 'lucide-react';
@@ -63,7 +61,7 @@ export function ExecutiveDashboard() {
 
   const data: OverviewResponse = overviewQuery.data;
 
-  // Chart data preparation
+  // Chart data for revenue performance
   const chartData = [
     {
       name: 'At Risk',
@@ -78,41 +76,41 @@ export function ExecutiveDashboard() {
       fill: '#10b981',
     },
     {
-      name: 'Expected Value',
+      name: 'Expected ERV',
       amount: data.expected_recovery_value_total.amount,
       display: formatMoney(data.expected_recovery_value_total.amount, true),
-      fill: '#38bdf8',
+      fill: '#4f46e5',
     },
   ];
 
   return (
     <div className="space-y-6">
-      {/* Top Welcome & Quick Action Header */}
-      <Card className="p-6 bg-gradient-to-r from-slate-900/90 via-slate-900/60 to-sky-950/40 border-sky-500/20">
+      {/* Top Banner */}
+      <Card className="p-6 bg-white border-slate-200">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="flex items-center gap-2">
               <StatusBadge tone="info">REVENUE RECOVERY OPERATIONS</StatusBadge>
-              <StatusBadge tone="success">LIVE INTELLIGENCE</StatusBadge>
+              <StatusBadge tone="success">LIVE RECOVERY METRICS</StatusBadge>
             </div>
-            <h1 className="mt-2 text-2xl font-bold text-slate-50 tracking-tight">
-              Executive Command Center
+            <h1 className="mt-2 text-2xl font-bold text-slate-900 tracking-tight">
+              Executive Recovery Dashboard
             </h1>
-            <p className="mt-1 text-sm text-slate-300">
+            <p className="mt-1 text-xs text-slate-500">
               Autonomous risk detection, ERV-ranked strategy decisioning, and policy-gated revenue recovery.
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <Link to="/judge-demo">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <Link to="/simulator">
               <Button variant="primary">
-                <Award aria-hidden="true" className="size-4" />
-                Launch Judge Demo Flow
+                <Zap aria-hidden="true" className="size-4 mr-1.5" />
+                Launch Recovery Simulator
               </Button>
             </Link>
-            <Link to="/autopilot">
+            <Link to="/cases">
               <Button variant="secondary">
-                <Zap aria-hidden="true" className="size-4" />
-                Run Autopilot Batch
+                <Activity aria-hidden="true" className="size-4 mr-1.5" />
+                View Cases Queue
               </Button>
             </Link>
           </div>
@@ -133,7 +131,7 @@ export function ExecutiveDashboard() {
           icon={TrendingUp}
           subtext={`${data.cases_recovered} case(s) verified recovered`}
           title="Revenue Recovered"
-          tone="emerald"
+          tone="success"
           value={`${formatMoney(data.revenue_recovered.amount, true)} INR`}
         />
 
@@ -141,7 +139,7 @@ export function ExecutiveDashboard() {
           icon={BarChart3}
           subtext={`Avg. value: ${formatMoney(data.average_recovery_value.amount, true)} INR`}
           title="Recovery Rate"
-          tone="sky"
+          tone="indigo"
           value={formatPercent(data.recovery_rate)}
         />
 
@@ -149,7 +147,7 @@ export function ExecutiveDashboard() {
           icon={CheckCircle2}
           subtext={`${data.active_cases} active / ${data.cases_total} total cases`}
           title="Cases Recovered"
-          tone="emerald"
+          tone="success"
           value={`${data.cases_recovered}`}
         />
 
@@ -176,26 +174,26 @@ export function ExecutiveDashboard() {
         <Card className="p-6">
           <CardHeader className="px-0 pt-0 mb-4">
             <div>
-              <h2 className="text-base font-semibold text-slate-100">Revenue Performance</h2>
-              <p className="text-xs text-slate-400">Total at risk vs verified recovered vs expected recovery value</p>
+              <h2 className="text-base font-semibold text-slate-900">Revenue Performance</h2>
+              <p className="text-xs text-slate-500">Total at risk vs verified recovered vs expected recovery value</p>
             </div>
-            <TrendingUp className="size-5 text-emerald-400" />
+            <TrendingUp className="size-5 text-emerald-600" />
           </CardHeader>
 
           <div className="h-64 w-full">
             <ResponsiveContainer height="100%" width="100%">
               <BarChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
-                <CartesianGrid stroke="#1e293b" strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="name" stroke="#64748b" fontSize={12} tickLine={false} />
-                <YAxis stroke="#64748b" fontSize={11} tickFormatter={(val) => `₹${val / 100}`} tickLine={false} />
+                <CartesianGrid stroke="#f1f5f9" strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} tickLine={false} />
+                <YAxis stroke="#94a3b8" fontSize={11} tickFormatter={(val) => `₹${val / 100}`} tickLine={false} />
                 <Tooltip
                   content={({ active, payload }) => {
                     if (active && payload && payload.length) {
                       const item = payload[0].payload;
                       return (
-                        <div className="rounded-lg border border-slate-700 bg-slate-900 p-3 shadow-xl text-xs font-mono">
-                          <p className="font-bold text-slate-200">{item.name}</p>
-                          <p className="mt-1 text-sky-400">{item.display} INR</p>
+                        <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-md text-xs font-mono">
+                          <p className="font-bold text-slate-800">{item.name}</p>
+                          <p className="mt-1 text-indigo-600 font-bold">{item.display} INR</p>
                         </div>
                       );
                     }
@@ -216,31 +214,33 @@ export function ExecutiveDashboard() {
         <Card className="p-6">
           <CardHeader className="px-0 pt-0 mb-4">
             <div>
-              <h2 className="text-base font-semibold text-slate-100">Failure Cause Performance</h2>
-              <p className="text-xs text-slate-400">Recovery breakdown by root payment failure reason</p>
+              <h2 className="text-base font-semibold text-slate-900">Failure Cause Performance</h2>
+              <p className="text-xs text-slate-500">Recovery breakdown by root payment failure reason</p>
             </div>
-            <Activity className="size-5 text-sky-400" />
+            <BarChart3 className="size-5 text-indigo-600" />
           </CardHeader>
 
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="border-b border-white/10 text-[0.68rem] font-bold uppercase tracking-wider text-slate-400">
+              <thead className="border-b border-slate-100 text-slate-400 font-semibold text-[11px] uppercase">
                 <tr>
-                  <th className="pb-3">Failure Reason</th>
-                  <th className="pb-3 text-right">Cases</th>
-                  <th className="pb-3 text-right">At Risk</th>
-                  <th className="pb-3 text-right">Recovered</th>
-                  <th className="pb-3 text-right">Rate</th>
+                  <th className="pb-2">Failure Cause</th>
+                  <th className="pb-2 text-right">Total Cases</th>
+                  <th className="pb-2 text-right">Recovered</th>
+                  <th className="pb-2 text-right">Rate</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/[0.04]">
-                {data.by_failure_reason.map((row) => (
-                  <tr key={row.failure_reason} className="hover:bg-white/[0.02]">
-                    <td className="py-2.5 font-medium text-slate-200">{humanize(row.failure_reason)}</td>
-                    <td className="py-2.5 text-right font-mono text-slate-400">{row.cases}</td>
-                    <td className="py-2.5 text-right font-mono text-amber-300">{formatMoney(row.amount_at_risk.amount, true)}</td>
-                    <td className="py-2.5 text-right font-mono text-emerald-400">{formatMoney(row.amount_recovered.amount, true)}</td>
-                    <td className="py-2.5 text-right font-mono text-slate-300">{formatPercent(row.recovery_rate)}</td>
+              <tbody className="divide-y divide-slate-100 text-slate-700">
+                {data.by_failure_reason.map((f) => (
+                  <tr key={f.failure_reason} className="hover:bg-slate-50/70">
+                    <td className="py-2.5 font-medium text-slate-900">{humanize(f.failure_reason)}</td>
+                    <td className="py-2.5 text-right font-mono text-slate-600">{f.cases}</td>
+                    <td className="py-2.5 text-right font-mono font-semibold text-emerald-600">
+                      {f.recovered_cases}
+                    </td>
+                    <td className="py-2.5 text-right font-mono font-bold text-slate-800">
+                      {formatPercent(f.recovery_rate)}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -249,63 +249,39 @@ export function ExecutiveDashboard() {
         </Card>
       </div>
 
-      {/* Action Type Performance */}
+      {/* Action Breakdown Row */}
       <Card className="p-6">
         <CardHeader className="px-0 pt-0 mb-4">
           <div>
-            <h2 className="text-base font-semibold text-slate-100">Recovery Action Performance</h2>
-            <p className="text-xs text-slate-400">Selected strategy efficiency, policy gating, and success rates</p>
+            <h2 className="text-base font-semibold text-slate-900">Action Type Distribution</h2>
+            <p className="text-xs text-slate-500">Intervention breakdown and execution rates across candidate actions</p>
           </div>
+          <Activity className="size-5 text-indigo-600" />
         </CardHeader>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="border-b border-white/10 text-[0.68rem] font-bold uppercase tracking-wider text-slate-400">
-              <tr>
-                <th className="pb-3">Action Type</th>
-                <th className="pb-3 text-right">Selected</th>
-                <th className="pb-3 text-right">Executed</th>
-                <th className="pb-3 text-right">Policy Blocked</th>
-                <th className="pb-3 text-right">Success Rate</th>
-                <th className="pb-3 text-right">Recovered Amount</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/[0.04]">
-              {data.by_action.map((act) => (
-                <tr key={act.action_type} className="hover:bg-white/[0.02]">
-                  <td className="py-3 font-semibold text-slate-200">{act.action_type}</td>
-                  <td className="py-3 text-right font-mono text-slate-400">{act.selected}</td>
-                  <td className="py-3 text-right font-mono text-sky-400">{act.executed}</td>
-                  <td className="py-3 text-right font-mono text-rose-400">{act.blocked}</td>
-                  <td className="py-3 text-right font-mono text-emerald-400">{formatPercent(act.success_rate)}</td>
-                  <td className="py-3 text-right font-mono text-slate-100">{formatMoney(act.amount_recovered.amount, true)} INR</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          {data.by_action.map((a) => (
+            <div key={a.action_type} className="rounded-xl border border-slate-200 bg-slate-50/50 p-3.5">
+              <div className="text-xs font-semibold text-slate-800">{humanize(a.action_type)}</div>
+              <div className="mt-2 flex items-baseline justify-between">
+                <span className="font-mono text-lg font-bold text-slate-900">{a.selected}</span>
+                <span className="text-[11px] font-semibold text-emerald-600">
+                  {formatPercent(a.success_rate)}
+                </span>
+              </div>
+              <div className="mt-1 text-[11px] text-slate-500">
+                Recovered: <span className="font-mono font-medium text-slate-700">{formatMoney(a.amount_recovered.amount, true)} INR</span>
+              </div>
+            </div>
+          ))}
         </div>
       </Card>
 
-      {/* Expandable Technical Safety Checks */}
-      <Accordion title="Technical Safety Posture & Audit Constraints">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 pt-2">
-          <div className="flex items-center gap-2 text-xs">
-            <ShieldCheck className="size-4 text-emerald-400" />
-            <span>Budget Enforced: {String(data.safety.recovery_budget_enforced)}</span>
-          </div>
-          <div className="flex items-center gap-2 text-xs">
-            <ShieldCheck className="size-4 text-emerald-400" />
-            <span>High-Value Escalation: {String(data.safety.high_value_escalation_enabled)}</span>
-          </div>
-          <div className="flex items-center gap-2 text-xs">
-            <ShieldCheck className="size-4 text-emerald-400" />
-            <span>Blocked Never Executed: {String(data.safety.blocked_actions_never_executed)}</span>
-          </div>
-          <div className="flex items-center gap-2 text-xs">
-            <ShieldCheck className="size-4 text-emerald-400" />
-            <span>Audit Immutability: {String(data.safety.complete_audit_trail)}</span>
-          </div>
-        </div>
+      {/* Expandable Technical Telemetry */}
+      <Accordion title="Executive Telemetry & Technical Raw Breakdown">
+        <pre className="overflow-x-auto rounded-lg bg-slate-50 border border-slate-200 p-3 font-mono text-[0.7rem] text-slate-700">
+          {JSON.stringify(data, null, 2)}
+        </pre>
       </Accordion>
     </div>
   );

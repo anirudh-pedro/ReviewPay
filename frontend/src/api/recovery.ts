@@ -60,6 +60,7 @@ export interface ListCasesParams {
   limit?: number;
   offset?: number;
   state?: CaseState;
+  real_only?: boolean;
 }
 
 /** Body accepted by POST /api/recovery/autopilot. */
@@ -135,6 +136,7 @@ export function listCases(
   if (params.limit !== undefined) query.set('limit', String(params.limit));
   if (params.offset !== undefined) query.set('offset', String(params.offset));
   if (params.state) query.set('state', params.state);
+  if (params.real_only !== undefined) query.set('real_only', String(params.real_only));
 
   const suffix = query.toString() ? `?${query.toString()}` : '';
   return apiGet<Page<RecoveryCaseSummary>>(
@@ -143,6 +145,9 @@ export function listCases(
     isRecoveryCasePage,
   );
 }
+
+export const clearCases = () =>
+  apiPost<{ status: string; message: string }>(`${PREFIX}/recovery/cases/clear`, {});
 
 export const getCase = (caseId: string, signal?: AbortSignal) =>
   apiGet<RecoveryCaseDetail>(
@@ -259,4 +264,22 @@ export const getJudgeDemo = (caseId: string, signal?: AbortSignal) =>
     signal,
     isJudgeDemoResponse,
   );
+
+/** Customer-facing recovery details. */
+export const getCustomerRecoveryView = (caseId: string, signal?: AbortSignal) =>
+  apiGet<import('@/types/api').CustomerRecoveryViewResponse>(
+    `${PREFIX}/recovery/cases/${encodeURIComponent(caseId)}/customer-view`,
+    signal,
+  );
+
+/** Customer executes payment recovery. */
+export const customerRecover = (
+  caseId: string,
+  payload: import('@/types/api').CustomerRecoveryExecutionRequest,
+) =>
+  apiPost<import('@/types/api').CustomerRecoveryExecutionResponse>(
+    `${PREFIX}/recovery/cases/${encodeURIComponent(caseId)}/customer-recover`,
+    payload,
+  );
+
 

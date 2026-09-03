@@ -210,6 +210,9 @@ export interface RecoveryCaseSummary {
   amount_at_risk: Money;
   created_at: string;
   updated_at: string;
+  gateway_order_id?: string | null;
+  is_synthetic?: boolean;
+  failure_reason?: string | null;
 }
 
 export interface ExpectedValueBreakdown {
@@ -336,6 +339,8 @@ export interface PaymentRead {
   failure_reason: FailureReason | null;
   merchant_id: string;
   is_synthetic: boolean;
+  gateway_order_id?: string | null;
+  metadata?: Record<string, unknown>;
   created_at: string;
   updated_at: string;
 }
@@ -760,5 +765,59 @@ export interface JudgeDemoResponse extends SyntheticNotice {
   recovered_amount: Money;
   is_recovered: boolean;
   stages: JudgeDemoStage[];
+}
+
+export interface CustomerRecoveryViewResponse {
+  case_id: string;
+  payment_id: string;
+  order_id: string | null;
+  merchant_name: string;
+  amount: Money;
+  status: 'PENDING_RECOVERY' | 'RECOVERED' | 'EXPIRED';
+  failure_reason: FailureReason;
+  failure_title: string;
+  failure_explanation: string;
+  recommended_action: ActionType;
+  solution_title: string;
+  solution_description: string;
+  action_type: 'UPI_QR' | 'ALTERNATIVE_PAYMENT' | 'SMART_RETRY';
+  available_methods: string[];
+  simulated_upi_qr: string;
+  cooldown_seconds: number;
+  expires_at: string | null;
+}
+
+export interface CustomerRecoveryExecutionRequest {
+  selected_method: string;
+  instrument_details?: Record<string, unknown>;
+}
+
+export interface CustomerRecoveryExecutionResponse {
+  success: boolean;
+  receipt_id: string;
+  case_id: string;
+  payment_id: string;
+  amount_recovered: Money;
+  recovered_at: string;
+  message: string;
+}
+
+export interface GatewayFailureSimulationRequest {
+  failure_reason: FailureReason;
+  error_description?: string;
+  payment_method?: string;
+}
+
+export interface GatewayFailureSimulationResponse {
+  data_source: string;
+  notice: string;
+  payment: PaymentRead;
+  recovery_case_id: string;
+  recovery_case_state: string;
+  failure_reason: FailureReason;
+  diagnosis_explanation: string;
+  selected_action: ActionType | null;
+  policy_outcome: string;
+  customer_recovery_url: string;
 }
 

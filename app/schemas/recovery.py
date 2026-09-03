@@ -123,9 +123,27 @@ class RecoveryCaseSummary(BaseModel):
     amount_at_risk: Money
     created_at: datetime
     updated_at: datetime
+    gateway_order_id: str | None = None
+    is_synthetic: bool = True
+    failure_reason: str | None = None
 
     @classmethod
     def from_model(cls, case, currency: str = "INR") -> "RecoveryCaseSummary":
+        gateway_order_id = None
+        is_synthetic = True
+        failure_reason = None
+        payment = getattr(case, "payment", None)
+        if payment is not None:
+            is_synthetic = getattr(payment, "is_synthetic", True)
+            fr = getattr(payment, "failure_reason", None)
+            if fr is not None:
+                failure_reason = fr.value if hasattr(fr, "value") else str(fr)
+            gw = getattr(payment, "gateway_payment", None)
+            if gw is not None:
+                gateway_order_id = getattr(gw, "provider_order_id", None)
+        elif case.diagnosis and isinstance(case.diagnosis, dict):
+            failure_reason = case.diagnosis.get("failure_reason")
+
         return cls(
             case_id=case.case_id,
             payment_id=case.payment_id,
@@ -133,6 +151,9 @@ class RecoveryCaseSummary(BaseModel):
             amount_at_risk=Money.of(case.amount_at_risk, currency),
             created_at=case.created_at,
             updated_at=case.updated_at,
+            gateway_order_id=gateway_order_id,
+            is_synthetic=is_synthetic,
+            failure_reason=failure_reason,
         )
 
 

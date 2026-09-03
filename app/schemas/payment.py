@@ -68,11 +68,16 @@ class PaymentRead(BaseModel):
     failure_reason: FailureReason | None = None
     merchant_id: str
     is_synthetic: bool
+    gateway_order_id: str | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
     created_at: datetime
     updated_at: datetime
 
     @classmethod
     def from_model(cls, payment) -> "PaymentRead":
+        gw = getattr(payment, "gateway_payment", None)
+        gateway_order_id = getattr(gw, "provider_order_id", None) if gw else None
+        metadata = getattr(payment, "meta", None) or {}
         return cls(
             payment_id=payment.payment_id,
             customer_id=payment.customer_id,
@@ -83,6 +88,8 @@ class PaymentRead(BaseModel):
             failure_reason=payment.failure_reason,
             merchant_id=payment.merchant_id,
             is_synthetic=payment.is_synthetic,
+            gateway_order_id=gateway_order_id,
+            metadata=metadata,
             created_at=payment.created_at,
             updated_at=payment.updated_at,
         )

@@ -6,6 +6,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from app.core.enums import ActionType, FailureReason
 from app.schemas.common import Money
 from app.schemas.payment import PaymentRead
 
@@ -56,9 +57,34 @@ class RazorpayWebhookResponse(BaseModel):
     recovery_case_id: str | None = None
 
 
+class GatewayFailureSimulationRequest(BaseModel):
+    """Operator request to simulate a specific failure scenario on a Sandbox order."""
+
+    failure_reason: FailureReason
+    error_description: str | None = Field(default=None, max_length=500)
+    payment_method: str = Field(default="card", max_length=32)
+
+
+class GatewayFailureSimulationResponse(BaseModel):
+    """Result of gateway failure and RevivePay autonomous takeover."""
+
+    data_source: str = GATEWAY_DATA_SOURCE
+    notice: str = GATEWAY_NOTICE
+    payment: PaymentRead
+    recovery_case_id: str
+    recovery_case_state: str
+    failure_reason: FailureReason
+    diagnosis_explanation: str
+    selected_action: ActionType | None
+    policy_outcome: str
+    customer_recovery_url: str
+
+
 __all__ = [
     "GATEWAY_DATA_SOURCE",
     "GATEWAY_NOTICE",
+    "GatewayFailureSimulationRequest",
+    "GatewayFailureSimulationResponse",
     "RazorpayCheckoutVerificationRequest",
     "RazorpayOrderCreateRequest",
     "RazorpayOrderResponse",

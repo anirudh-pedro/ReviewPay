@@ -195,6 +195,9 @@ class Settings(BaseSettings):
     rate_limit_requests_per_minute: int = 120
     default_currency: str = "INR"
 
+    groq_api_key: str | None = None
+    groq_model: str = "llama-3.3-70b-versatile"
+
     # Razorpay is an opt-in Sandbox gateway path. Simulator execution remains the default.
     razorpay_enabled: bool = False
     razorpay_key_id: str | None = None

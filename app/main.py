@@ -158,7 +158,7 @@ def create_app() -> FastAPI:
 
     @app.exception_handler(Exception)
     async def handle_unexpected_error(request: Request, exc: Exception) -> JSONResponse:
-        logger.error("unhandled error | method=%s path=%s type=%s", request.method, request.url.path, type(exc).__name__)
+        logger.exception("unhandled error | method=%s path=%s type=%s", request.method, request.url.path, type(exc).__name__)
         return JSONResponse(status_code=500, content=_envelope("INTERNAL_ERROR", "An unexpected internal error occurred."))
 
     from app.api.router import api_router, root_router
