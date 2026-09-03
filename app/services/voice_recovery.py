@@ -68,7 +68,7 @@ class VoiceRecoveryService:
             self.settings, supported_actions=frozenset(ActionType)
         )
         self.audit = audit_service or AuditService(session, clock)
-
+ 
     def trigger_voice_recovery(
         self,
         case_id: str,
@@ -87,14 +87,14 @@ class VoiceRecoveryService:
             raise RecordNotFound("Payment", case.payment_id)
 
         # 1. State & Lifecycle Safety Gates
-        if case.state in CaseState.terminal() or case.state == CaseState.RECOVERED:
+        if case.state == CaseState.RECOVERED or payment.status in PaymentStatus.successful():
             raise VoiceRecoveryError(
-                f"Cannot initiate voice recovery on a terminal or already recovered case ({case.state.value})."
+                f"Cannot initiate voice recovery on an already recovered payment ({case.state.value})."
             )
 
-        if payment.status in PaymentStatus.successful():
+        if case.state == CaseState.ESCALATED:
             raise VoiceRecoveryError(
-                "Payment is already successful. Voice recovery prohibited."
+                "Case is escalated to human compliance. Automated voice recovery is prohibited."
             )
 
         # 2. Recovery Budget Safety Gate
