@@ -821,3 +821,19 @@ export interface GatewayFailureSimulationResponse {
   customer_recovery_url: string;
 }
 
+export interface SendRecoveryEmailRequest {
+  recipient_email: string;
+  customer_name?: string;
+  portal_base_url?: string;
+}
+
+export interface SendRecoveryEmailResponse {
+  success: boolean;
+  provider: string;
+  recipient: string;
+  message: string;
+  message_id?: string | null;
+  mailto_fallback_url?: string | null;
+  error?: string | null;
+}
+

@@ -282,4 +282,15 @@ export const customerRecover = (
     payload,
   );
 
+/** Send live transactional recovery email via Resend / SendGrid / SMTP. */
+export const sendRecoveryEmail = (
+  caseId: string,
+  payload: import('@/types/api').SendRecoveryEmailRequest,
+) =>
+  apiPost<import('@/types/api').SendRecoveryEmailResponse>(
+    `${PREFIX}/recovery/cases/${encodeURIComponent(caseId)}/send-email`,
+    payload,
+  );
+
+
 

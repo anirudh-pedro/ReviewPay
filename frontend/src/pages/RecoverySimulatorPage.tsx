@@ -16,14 +16,16 @@ import {
   MessageSquare,
   Mail,
   Lock,
+  Send,
 } from 'lucide-react';
 import { Accordion, Button, Card, CardHeader, StatusBadge } from '@/components/ui';
 import { createRazorpayOrder, verifyRazorpayCheckout, simulateGatewayOrderFailure } from '@/api/gateway';
-import { customerRecover } from '@/api/recovery';
+import { customerRecover, sendRecoveryEmail } from '@/api/recovery';
 import type {
   RazorpayOrderResponse,
   RazorpayVerificationResponse,
   GatewayFailureSimulationResponse,
+  SendRecoveryEmailResponse,
   FailureReason,
 } from '@/types/api';
 import { formatMoney } from '@/utils/format';
@@ -142,6 +144,12 @@ export function RecoverySimulatorPage() {
   const [customerRecovered, setCustomerRecovered] = useState(false);
   const [copied, setCopied] = useState(false);
   const [previewChannel, setPreviewChannel] = useState<'LINK' | 'WHATSAPP' | 'EMAIL'>('LINK');
+
+  // Live Dispatch State
+  const [recipientEmail, setRecipientEmail] = useState('');
+  const [emailSending, setEmailSending] = useState(false);
+  const [emailResult, setEmailResult] = useState<SendRecoveryEmailResponse | null>(null);
+  const [whatsappPhone, setWhatsappPhone] = useState('');
 
   // Compute active step (1 to 7)
   const currentStep = customerRecovered
@@ -274,6 +282,42 @@ export function RecoverySimulatorPage() {
     navigator.clipboard.writeText(fullUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleSendLiveEmail = async () => {
+    if (!takeoverResult?.recovery_case_id || !recipientEmail) return;
+    setEmailSending(true);
+    setEmailResult(null);
+    try {
+      const res = await sendRecoveryEmail(takeoverResult.recovery_case_id, {
+        recipient_email: recipientEmail,
+        customer_name: 'Valued Customer',
+        portal_base_url: window.location.origin,
+      });
+      setEmailResult(res);
+    } catch (err: unknown) {
+      setEmailResult({
+        success: false,
+        provider: 'resend',
+        recipient: recipientEmail,
+        message: err instanceof Error ? err.message : 'Failed to dispatch live email',
+        error: String(err),
+      });
+    } finally {
+      setEmailSending(false);
+    }
+  };
+
+  const handleOpenWhatsApp = () => {
+    if (!takeoverResult?.recovery_case_id) return;
+    const cleanPhone = whatsappPhone.replace(/[^0-9]/g, '');
+    const amountStr = formatMoney(takeoverResult.payment.money);
+    const recoveryUrl = `${window.location.origin}/recover/${takeoverResult.recovery_case_id}`;
+    const text = encodeURIComponent(
+      `Hi, your payment of ${amountStr} was interrupted. RevivePay has preserved your checkout session. Complete your payment with 1-click UPI: ${recoveryUrl}`
+    );
+    const waUrl = cleanPhone ? `https://wa.me/${cleanPhone}?text=${text}` : `https://wa.me/?text=${text}`;
+    window.open(waUrl, '_blank');
   };
 
   return (
@@ -716,15 +760,39 @@ export function RecoverySimulatorPage() {
                   </div>
                 )}
 
-                {/* 2. WhatsApp Notification Preview */}
+                {/* 2. WhatsApp Notification & Live Dispatch */}
                 {previewChannel === 'WHATSAPP' && (
-                  <div className="p-4 rounded-xl border border-emerald-200 bg-emerald-50/30 space-y-3">
-                    <div className="flex items-center justify-between text-xs text-emerald-900 font-semibold">
+                  <div className="p-5 rounded-2xl border border-emerald-200 bg-emerald-50/40 space-y-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-emerald-950 font-semibold">
                       <span className="flex items-center gap-1.5">
-                        <MessageSquare className="size-3.5 text-emerald-600" /> WhatsApp Message Notification
+                        <MessageSquare className="size-4 text-emerald-600" /> WhatsApp Direct Recovery Message
                       </span>
-                      <StatusBadge tone="neutral">SIMULATED PREVIEW</StatusBadge>
+                      <StatusBadge tone="success">LIVE WA.ME DISPATCH</StatusBadge>
                     </div>
+
+                    {/* Phone Number Input & Launch */}
+                    <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-2xs space-y-3">
+                      <label className="block text-xs font-semibold text-slate-700">
+                        Recipient Phone Number (Optional — opens WhatsApp Web or Mobile App)
+                      </label>
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <input
+                          type="tel"
+                          placeholder="e.g. 919876543210 (include country code)"
+                          value={whatsappPhone}
+                          onChange={(e) => setWhatsappPhone(e.target.value)}
+                          className="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 font-mono"
+                        />
+                        <Button
+                          size="sm"
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shrink-0"
+                          onClick={handleOpenWhatsApp}
+                        >
+                          <Send className="size-3.5 mr-1.5" /> Send via WhatsApp
+                        </Button>
+                      </div>
+                    </div>
+
                     <div className="max-w-md bg-white border border-slate-200 p-4 rounded-xl shadow-2xs text-xs text-slate-800 space-y-2">
                       <p className="font-semibold text-slate-900">Acme Store: Action required for your order</p>
                       <p className="text-slate-600">
@@ -736,48 +804,135 @@ export function RecoverySimulatorPage() {
                       <p className="text-[10px] text-slate-400">Click above to complete your payment with 1-click UPI.</p>
                     </div>
 
-                    <Button
-                      size="sm"
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
-                      loading={customerRecovering}
-                      onClick={() => void handleCustomerRecoverInPage()}
-                    >
-                      <CheckCircle2 className="size-3.5 mr-1" /> Customer Follows Link & Pays Now
-                    </Button>
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      <Button
+                        size="sm"
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+                        loading={customerRecovering}
+                        onClick={() => void handleCustomerRecoverInPage()}
+                      >
+                        <CheckCircle2 className="size-3.5 mr-1" /> Customer Follows Link & Pays Now
+                      </Button>
+                      <Link
+                        to={`/recover/${takeoverResult.recovery_case_id}`}
+                        target="_blank"
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-2xs"
+                      >
+                        Open Customer Portal <ExternalLink className="size-3" />
+                      </Link>
+                    </div>
                   </div>
                 )}
 
-                {/* 3. Email Notification Preview */}
+                {/* 3. Email Notification Preview & Live Resend Sender */}
                 {previewChannel === 'EMAIL' && (
-                  <div className="p-4 rounded-xl border border-indigo-100 bg-indigo-50/30 space-y-3">
-                    <div className="flex items-center justify-between text-xs text-indigo-900 font-semibold">
+                  <div className="p-5 rounded-2xl border border-indigo-100 bg-indigo-50/40 space-y-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-indigo-950 font-semibold">
                       <span className="flex items-center gap-1.5">
-                        <Mail className="size-3.5 text-indigo-600" /> Email Payment Recovery Notification
+                        <Mail className="size-4 text-indigo-600" /> Live Transactional Recovery Email
                       </span>
-                      <StatusBadge tone="neutral">SIMULATED PREVIEW</StatusBadge>
+                      <StatusBadge tone="success">POWERED BY RESEND LIVE</StatusBadge>
                     </div>
+
+                    {/* Email Input & Send Controls */}
+                    <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-2xs space-y-3">
+                      <label className="block text-xs font-semibold text-slate-700">
+                        Recipient Email Address (Enter your email to receive live email)
+                      </label>
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <input
+                          type="email"
+                          placeholder="e.g. your_email@domain.com"
+                          value={recipientEmail}
+                          onChange={(e) => setRecipientEmail(e.target.value)}
+                          className="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
+                        />
+                        <Button
+                          size="sm"
+                          className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shrink-0"
+                          loading={emailSending}
+                          disabled={!recipientEmail.trim()}
+                          onClick={() => void handleSendLiveEmail()}
+                        >
+                          <Send className="size-3.5 mr-1.5" /> Send Live Email
+                        </Button>
+                      </div>
+
+                      {/* Live Feedback Banner */}
+                      {emailResult && (
+                        <div
+                          className={`p-3 rounded-lg border text-xs ${
+                            emailResult.success
+                              ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                              : 'bg-rose-50 border-rose-200 text-rose-800'
+                          }`}
+                        >
+                          <div className="flex items-center gap-1.5 font-bold">
+                            {emailResult.success ? (
+                              <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
+                            ) : (
+                              <AlertTriangle className="size-4 text-rose-600 shrink-0" />
+                            )}
+                            {emailResult.success ? 'Email Dispatched via Resend!' : 'Delivery Notice'}
+                          </div>
+                          <p className="mt-1 text-[11px] leading-relaxed">
+                            {emailResult.message}
+                          </p>
+                          {emailResult.message_id && (
+                            <p className="mt-1 font-mono text-[10px] text-emerald-700">
+                              Resend Message ID: {emailResult.message_id}
+                            </p>
+                          )}
+                          {emailResult.mailto_fallback_url && !emailResult.success && (
+                            <div className="mt-2">
+                              <a
+                                href={emailResult.mailto_fallback_url}
+                                className="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-700 underline"
+                              >
+                                Open in your default mail app instead <ExternalLink className="size-3" />
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Rendered Email Preview */}
                     <div className="max-w-md bg-white border border-slate-200 p-4 rounded-xl shadow-2xs text-xs text-slate-800 space-y-2">
                       <div className="text-[11px] text-slate-500 pb-1 border-b border-slate-100">
-                        Subject: <strong>Finish your purchase ({takeoverResult.payment.payment_id})</strong>
+                        Subject: <strong>Finish your payment of {formatMoney(takeoverResult.payment.money)} ({takeoverResult.payment.payment_id})</strong>
                       </div>
                       <p className="text-slate-600">
-                        Your payment failed due to an issuer timeout. No funds were debited. Use the secure link below to retry with instant UPI or another card.
+                        Hi Valued Customer, your payment was interrupted due to a temporary bank timeout. RevivePay has preserved your checkout session. Click below to complete:
                       </p>
-                      <div className="text-center pt-2">
-                        <span className="inline-block px-4 py-2 rounded-lg bg-indigo-600 text-white font-semibold text-xs shadow-xs">
-                          Complete My Payment Now
-                        </span>
+                      <div className="text-center pt-2 pb-1">
+                        <Link
+                          to={`/recover/${takeoverResult.recovery_case_id}`}
+                          target="_blank"
+                          className="inline-block px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-xs"
+                        >
+                          Complete My Payment (1-Click) &rarr;
+                        </Link>
                       </div>
                     </div>
 
-                    <Button
-                      size="sm"
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
-                      loading={customerRecovering}
-                      onClick={() => void handleCustomerRecoverInPage()}
-                    >
-                      <CheckCircle2 className="size-3.5 mr-1" /> Customer Opens Email & Recovers Payment
-                    </Button>
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      <Button
+                        size="sm"
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+                        loading={customerRecovering}
+                        onClick={() => void handleCustomerRecoverInPage()}
+                      >
+                        <CheckCircle2 className="size-3.5 mr-1" /> Customer Opens Email & Recovers Payment
+                      </Button>
+                      <Link
+                        to={`/recover/${takeoverResult.recovery_case_id}`}
+                        target="_blank"
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-2xs"
+                      >
+                        Open Customer Portal <ExternalLink className="size-3" />
+                      </Link>
+                    </div>
                   </div>
                 )}
               </div>

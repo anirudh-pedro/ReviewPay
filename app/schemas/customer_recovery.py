@@ -60,3 +60,23 @@ class CustomerRecoveryExecutionResponse(BaseModel):
     amount_recovered: Money
     recovered_at: str
     message: str
+
+
+class SendRecoveryEmailRequest(BaseModel):
+    """Request to send a real recovery email to a customer."""
+
+    recipient_email: str = Field(description="Target customer email address")
+    customer_name: str = Field(default="Valued Customer")
+    portal_base_url: str | None = Field(default=None, description="Base frontend URL, e.g. http://localhost:5173")
+
+
+class SendRecoveryEmailResponse(BaseModel):
+    """Result of dispatching recovery email."""
+
+    success: bool
+    provider: str
+    recipient: str
+    message: str
+    message_id: str | None = None
+    mailto_fallback_url: str | None = None
+    error: str | None = None

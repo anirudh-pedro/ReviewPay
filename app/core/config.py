@@ -206,6 +206,15 @@ class Settings(BaseSettings):
     razorpay_api_base_url: str = "https://api.razorpay.com/v1"
     razorpay_timeout_seconds: int = 10
 
+    # Live Email Delivery (Resend / SendGrid / SMTP)
+    resend_api_key: str | None = None
+    sendgrid_api_key: str | None = None
+    smtp_host: str | None = None
+    smtp_port: int = 587
+    smtp_username: str | None = None
+    smtp_password: str | None = None
+    email_from: str = "RevivePay Recovery <onboarding@resend.dev>"
+
     @field_validator("environment")
     @classmethod
     def _normalise_environment(cls, value: str) -> str:

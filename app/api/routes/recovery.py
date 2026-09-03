@@ -39,6 +39,8 @@ from app.schemas.customer_recovery import (
     CustomerRecoveryExecutionRequest,
     CustomerRecoveryExecutionResponse,
     CustomerRecoveryViewResponse,
+    SendRecoveryEmailRequest,
+    SendRecoveryEmailResponse,
 )
 from app.schemas.recovery import (
     AuditEventRead,
@@ -499,6 +501,66 @@ def customer_complete_recovery(
         amount_recovered=Money.of(payment.amount, payment.currency),
         recovered_at=now.isoformat(),
         message="Payment verified and successfully recovered via RevivePay!",
+    )
+
+
+@router.post(
+    "/cases/{case_id}/send-email",
+    response_model=SendRecoveryEmailResponse,
+    summary="Send a live recovery email to customer",
+)
+def send_recovery_email(
+    case_id: str,
+    payload: SendRecoveryEmailRequest,
+    session: SessionDep,
+    settings: SettingsDep,
+) -> SendRecoveryEmailResponse:
+    """Send a live transactional payment recovery email via Resend, SendGrid, or SMTP."""
+    from urllib.parse import quote
+    from app.services.email_service import EmailRecoveryService
+
+    case = _get_case(session, case_id)
+    payment = case.payment or session.get(Payment, case.payment_id)
+    amount_formatted = f"₹{case.amount_at_risk / 100:.2f} INR"
+    failure_reason = (
+        payment.failure_reason.value if payment and payment.failure_reason else "Payment Interruption"
+    )
+
+    gw = payment.gateway_payment if payment else None
+    order_id = gw.provider_order_id if gw else (case.payment_id or case_id)
+
+    base_url = (payload.portal_base_url or "http://localhost:5173").rstrip("/")
+    recovery_url = f"{base_url}/recover/{case_id}"
+
+    service = EmailRecoveryService(settings)
+    result = service.send_recovery_email(
+        recipient_email=payload.recipient_email,
+        customer_name=payload.customer_name,
+        amount_formatted=amount_formatted,
+        failure_reason_text=failure_reason.replace("_", " ").title(),
+        recovery_url=recovery_url,
+        order_id=order_id,
+    )
+
+    # Pre-build mailto URL for immediate browser/client fallback
+    subject = quote(f"Finish your payment of {amount_formatted} ({order_id})")
+    body = quote(
+        f"Hi {payload.customer_name},\n\n"
+        f"Your payment of {amount_formatted} was interrupted. Use the secure link below to complete your checkout with 1-click UPI:\n\n"
+        f"{recovery_url}\n\n"
+        f"Order Reference: {order_id}\n"
+        f"— RevivePay Recovery"
+    )
+    mailto_url = f"mailto:{payload.recipient_email}?subject={subject}&body={body}"
+
+    return SendRecoveryEmailResponse(
+        success=result.success,
+        provider=result.provider,
+        recipient=result.recipient,
+        message=result.message,
+        message_id=result.message_id,
+        mailto_fallback_url=mailto_url,
+        error=result.error,
     )
 
 
