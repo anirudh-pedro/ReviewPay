@@ -363,6 +363,16 @@ export function RecoverySimulatorPage() {
     }
   };
 
+  const handleResetSimulation = () => {
+    setActiveOrder(null);
+    setTakeoverResult(null);
+    setCustomerRecovered(false);
+    setVoiceResult(null);
+    setVoiceCallStep(0);
+    setEmailResult(null);
+    setMessage('Ready for a new recovery run. Click "Open Razorpay Sandbox Checkout" to start.');
+  };
+
   return (
     <div className="space-y-6">
       {/* 1. Always-Visible Executive Summary Bar */}
@@ -1016,14 +1026,31 @@ export function RecoverySimulatorPage() {
                       </div>
                       <div>
                         <span className="text-slate-400 block text-[10px] uppercase font-bold">PolicyEngine Gate</span>
-                        <span className="inline-flex items-center gap-1 text-emerald-700 font-bold">
-                          ✓ ALLOWED (Budget OK)
+                        <span className={`inline-flex items-center gap-1 font-bold ${customerRecovered ? 'text-emerald-700' : 'text-emerald-700'}`}>
+                          {customerRecovered ? '✓ RECOVERED (Paid)' : '✓ ALLOWED (Budget OK)'}
                         </span>
                       </div>
                     </div>
 
                     {/* Phone Number Input & Launch */}
                     <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-2xs space-y-3">
+                      {customerRecovered ? (
+                        <div className="rounded-lg border border-emerald-200 bg-emerald-50/80 p-3 text-xs text-emerald-900 flex items-center justify-between gap-3">
+                          <span className="flex items-center gap-2">
+                            <Check className="size-4 text-emerald-600 shrink-0" />
+                            <strong>Payment Already Recovered:</strong> Outbound voice recovery is prohibited for completed transactions.
+                          </span>
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={handleResetSimulation}
+                            className="shrink-0 text-xs"
+                          >
+                            <RefreshCw className="size-3 mr-1" /> New Simulation
+                          </Button>
+                        </div>
+                      ) : null}
+
                       <label className="block text-xs font-semibold text-slate-700">
                         Customer Mobile Number (e.g. 09876543210 or +919876543210)
                       </label>
@@ -1033,13 +1060,14 @@ export function RecoverySimulatorPage() {
                           placeholder="Enter customer phone number"
                           value={voicePhone}
                           onChange={(e) => setVoicePhone(e.target.value)}
-                          className="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-100 font-mono"
+                          disabled={customerRecovered}
+                          className="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-100 font-mono disabled:bg-slate-100 disabled:text-slate-400"
                         />
                         <Button
                           size="sm"
                           className="bg-purple-600 hover:bg-purple-700 text-white font-semibold shrink-0"
                           loading={voiceCalling}
-                          disabled={!voicePhone.trim()}
+                          disabled={!voicePhone.trim() || customerRecovered}
                           onClick={() => void handleInitiateVoiceRecovery()}
                         >
                           <PhoneCall className="size-3.5 mr-1.5" /> Initiate Voice Recovery
