@@ -126,7 +126,7 @@ class ExotelClient:
         # CallerId: Exotel virtual number
         # Url: Flow URL to play IVR/prompt once answered
         flow_url = (
-            f"http://my.exotel.com/{self.account_sid}/exml/start_voice/{self.flow_id}"
+            f"http://my.exotel.com/{self.account_sid}/exoml/start_voice/{self.flow_id}"
             if self.flow_id
             else None
         )
@@ -134,6 +134,7 @@ class ExotelClient:
         payload_dict: dict[str, str] = {
             "From": clean_to,
             "CallerId": self.caller_id,
+            "CallType": "trans",
             "CustomField": case_id,
         }
 
