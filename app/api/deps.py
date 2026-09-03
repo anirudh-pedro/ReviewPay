@@ -15,6 +15,9 @@ from app.db.session import get_session
 
 
 def settings_dep() -> Settings:
+    from dotenv import load_dotenv
+    load_dotenv(override=True)
+    get_settings.cache_clear()
     return get_settings()
 
 

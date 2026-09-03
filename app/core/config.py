@@ -13,8 +13,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from app.core.enums import ActionType, FailureReason
 
-DEFAULT_INTERVENTION_COST_MINOR = {ActionType.RETRY_NOW.value: 500, ActionType.RETRY_LATER.value: 2_000, ActionType.SEND_PAYMENT_LINK.value: 3_000, ActionType.CHANGE_PAYMENT_METHOD.value: 3_000, ActionType.SEND_REMINDER.value: 1_000, ActionType.ESCALATE_HUMAN.value: 50_000, ActionType.STOP.value: 0}
-DEFAULT_FRICTION_PENALTY_MINOR = {ActionType.RETRY_NOW.value: 2_000, ActionType.RETRY_LATER.value: 10_000, ActionType.SEND_PAYMENT_LINK.value: 15_000, ActionType.CHANGE_PAYMENT_METHOD.value: 20_000, ActionType.SEND_REMINDER.value: 8_000, ActionType.ESCALATE_HUMAN.value: 0, ActionType.STOP.value: 0}
+DEFAULT_INTERVENTION_COST_MINOR = {ActionType.RETRY_NOW.value: 500, ActionType.RETRY_LATER.value: 2_000, ActionType.SEND_PAYMENT_LINK.value: 3_000, ActionType.CHANGE_PAYMENT_METHOD.value: 3_000, ActionType.SEND_REMINDER.value: 1_000, ActionType.ESCALATE_HUMAN.value: 50_000, ActionType.STOP.value: 0, ActionType.VOICE_CALL.value: 2_500}
+DEFAULT_FRICTION_PENALTY_MINOR = {ActionType.RETRY_NOW.value: 2_000, ActionType.RETRY_LATER.value: 10_000, ActionType.SEND_PAYMENT_LINK.value: 15_000, ActionType.CHANGE_PAYMENT_METHOD.value: 20_000, ActionType.SEND_REMINDER.value: 8_000, ActionType.ESCALATE_HUMAN.value: 0, ActionType.STOP.value: 0, ActionType.VOICE_CALL.value: 12_000}
 DEFAULT_SIMULATOR_SUCCESS_PROBABILITY = {
     f"{FailureReason.BANK_TIMEOUT.value}:{ActionType.RETRY_NOW.value}": 0.35,
     f"{FailureReason.BANK_TIMEOUT.value}:{ActionType.SEND_PAYMENT_LINK.value}": 0.55,
