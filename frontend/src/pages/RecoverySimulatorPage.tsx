@@ -347,13 +347,17 @@ export function RecoverySimulatorPage() {
         setVoiceCallStep(0);
       }
     } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : 'Failed to initiate voice call';
+      if (errMsg.toLowerCase().includes('already recovered')) {
+        setCustomerRecovered(true);
+      }
       setVoiceResult({
         case_id: takeoverResult.recovery_case_id,
         channel: 'VOICE',
         status: 'CALL_FAILED',
         payment_link: `${window.location.origin}/recover/${takeoverResult.recovery_case_id}`,
         policy_decision: 'REJECTED',
-        message: err instanceof Error ? err.message : 'Failed to initiate voice call',
+        message: errMsg,
         success: false,
         error: String(err),
       });
@@ -1120,6 +1124,18 @@ export function RecoverySimulatorPage() {
                           <p className="mt-1 text-[11px] leading-relaxed">
                             {voiceResult.message}
                           </p>
+                          {voiceResult.message?.toLowerCase().includes('already recovered') && (
+                            <div className="mt-2 flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={handleResetSimulation}
+                                className="text-xs bg-white text-rose-800 border-rose-300 hover:bg-rose-100"
+                              >
+                                <RefreshCw className="size-3 mr-1" /> Start New Simulation To Test Voice Call
+                              </Button>
+                            </div>
+                          )}
                           {voiceResult.call_id && (
                             <p className="mt-1 font-mono text-[10px] text-emerald-700">
                               Exotel Call SID: {voiceResult.call_id}
