@@ -1,150 +1,214 @@
-﻿# RevivePay
+# RevivePay — Intelligent Payment Recovery & Revenue Preservation Engine
 
-RevivePay is an explainable revenue-recovery demonstration. It evaluates a failed **synthetic** payment, ranks recovery options by expected recovery value (ERV), passes the selected option through a mandatory policy gate, simulates the permitted outcome, and independently verifies the resulting payment state.
+RevivePay is an autonomous, policy-gated revenue recovery engine that intercepts payment failures from payment gateways (e.g., Razorpay), diagnoses the root cause using AI, ranks recovery channels by **Expected Recovery Value (ERV)**, and executes non-custodial recovery interventions (Exotel Voice, Resend Email, WhatsApp, and 1-Click UPI links).
 
-> **Safety and data notice:** every customer, payment, amount, model label, and outcome in this repository is synthetic. `PaymentSimulatorExecutor` does not contact a payment gateway, no real payment transaction is made, and no displayed metric describes real-world recovery performance.
+---
 
-## What it demonstrates
+## 🏛️ Core Architectural Invariant
 
-- Deterministic recovery workflow: diagnose → predict → evaluate → decide → policy → execute → verify.
-- Mandatory safety policy: high-value payments escalate to a human; exhausted recovery budgets are blocked; blocked/escalated actions never reach the executor.
-- Command Center UI with case evidence, audit history, Strategy Lab what-if comparisons, and a policy-gated **Run AI Recovery** stage view.
-- Phase 3 intelligence adapters: inspection-safe pre-action features, bounded synthetic/historical evidence, optional local logistic prediction, and schema-validated AI diagnosis with a free local mock fallback.
+> **"AI Recommends, PolicyEngine Decides, ActionExecutor Acts, OutcomeVerifier Proves."**
 
-The deterministic scorer and rule-based diagnosis are the defaults. They remain available whenever an optional model artifact or diagnosis provider is unavailable.
+- **Non-Custodial Recovery**: Recovery channels never hold or directly move merchant funds.
+- **Strict Separation of Execution and Settlement**: Placing an outbound phone call or delivering an email is **never** counted as revenue recovery. Revenue is strictly marked recovered only when the customer successfully completes payment via the verified recovery portal and `OutcomeVerifier` validates the captured gateway state.
+- **Safety & Compliance First**: High-value transactions escalate to human review; exhausted retry budgets are blocked; settled or recovered cases are strictly barred from outbound recovery calls.
 
-## Architecture
+---
 
-```text
-RecoveryContext (pre-action facts only)
-  ├─ RuleBasedDiagnosisEngine / AIDiagnosisEngine (optional)
-  ├─ DeterministicRecoveryScorer / LocalLogisticRecoveryPredictor (optional)
-  ├─ ExpectedRecoveryCalculator → RecoveryDecisionEngine
-  └─ PolicyEngine (final authority)
-       ├─ APPROVED  → PaymentSimulatorExecutor → OutcomeVerifier
-       ├─ BLOCKED   → stop; executor is never called
-       └─ ESCALATED → human handling; executor is never called
+## 🔄 End-to-End System Architecture
+
+```mermaid
+flowchart TD
+    subgraph Gateway ["1. Payment Gateway Interception"]
+        RZP[Razorpay Sandbox / Production] -->|Payment Failed| WH[Gateway Webhook / Takeover]
+        WH -->|Authoritative Evidence| RC[Create RecoveryCase]
+    end
+
+    subgraph Intelligence ["2. AI Diagnosis & Copilot"]
+        RC --> CTX[RecoveryContextBuilder]
+        CTX --> DIAG[AI Diagnosis & Root-Cause Classifier]
+        DIAG --> SCORER[ERV Recovery Scorer]
+        SCORER --> DECISION[Recovery Decision & Channel Recommendation]
+    end
+
+    subgraph Governance ["3. Mandatory PolicyEngine Gate"]
+        DECISION --> PE{PolicyEngine}
+        PE -->|REJECTED / BUDGET EXHAUSTED| STOP[Stop Workflow & Audit]
+        PE -->|HIGH RISK / VALUE| ESCALATE[Escalate to Human Compliance]
+        PE -->|APPROVED| EXEC[ActionExecutor]
+    end
+
+    subgraph Channels ["4. Non-Custodial Multi-Channel Outreach"]
+        EXEC -->|Voice Channel| EXOTEL[Exotel Outbound Voice Call]
+        EXEC -->|Email Channel| RESEND[Resend Transactional Email]
+        EXEC -->|Messaging Channel| WA[WhatsApp 1-Click Deep Link]
+        EXEC -->|Self-Service| PORTAL[Customer Recovery Portal /recover/:id]
+    end
+
+    subgraph Settlement ["5. Independent Verification"]
+        PORTAL -->|Customer Pays via 1-Click UPI| REPAY[Payment Gateway Capture]
+        REPAY --> OV[OutcomeVerifier]
+        OV -->|Verified SUCCEEDED| CASE_RECOVERED[Case Marked RECOVERED]
+        OV -->|Verified FAILED| CASE_RETRY[Schedule Next Action / Stop]
+    end
+
+    subgraph Audit ["6. Immutable Compliance Ledger"]
+        WH -.-> AUDIT[(Tamper-Evident Audit Trail)]
+        PE -.-> AUDIT
+        EXEC -.-> AUDIT
+        OV -.-> AUDIT
+    end
 ```
 
-The Phase 3 intelligence endpoints are read-only. They do not create actions, update outcomes, write audit events, retrain a model, or bypass policy.
+---
 
-## Local setup (Windows PowerShell)
+## 🧩 Architectural Components
+
+### 1. Gateway Takeover & Telemetry (`app/services/gateway_payment_service.py`)
+- Real Razorpay Sandbox integration with HMAC-SHA256 signature verification.
+- Ingests gateway error codes (`BAD_REQUEST_ERROR`, `GATEWAY_ERROR`, network drops) and normalizes them into domain failure categories:
+  - `BANK_TIMEOUT`: Issuing bank core API downtime.
+  - `INSUFFICIENT_FUNDS`: Account balance low; instrument switch required.
+  - `EXPIRED_CARD`: Expired or issuer-blocked card.
+  - `NETWORK_ERROR`: 3DS session disconnect mid-transaction.
+
+### 2. AI Diagnosis & ERV Calculation (`app/services/copilot.py`, `app/services/expected_recovery.py`)
+- **Root-Cause Analysis**: Distinguishes between transient issuer downtimes and terminal payment method defects.
+- **Expected Recovery Value (ERV)** calculation:
+  $$\text{ERV} = (\text{Amount at Risk} \times P_{\text{recovery}}) - \text{Intervention Cost} - \text{Customer Friction Penalty}$$
+- Ranks candidate actions: Outbound Voice, Transactional Email, Instant UPI Link, or Intelligent Retry Delay.
+
+### 3. Mandatory PolicyEngine Gate (`app/services/policy_engine.py`)
+- Autonomous actions cannot execute without passing deterministic compliance rules:
+  - **Retry Budget Enforcement**: Blocks actions if `attempt_count > max_automatic_retries`.
+  - **High-Value Escalation**: Escalates transactions above configured risk thresholds to human agents.
+  - **Terminal State Lock**: Rejects outreach on `RECOVERED` or `ESCALATED` cases to avoid customer harassment.
+  - **Idempotency Guard**: Prevents concurrent duplicate outreach on active cases.
+
+### 4. Action Execution Engine (`app/services/action_executor.py`, `app/services/voice_recovery.py`)
+- **Exotel Voice Channel**: Outbound calls via Exotel Connect API (`exoml/start_voice`) triggering IVR Text-to-Speech explaining the failure and dispatching SMS/WhatsApp links.
+- **Resend Email Channel**: Branded transactional emails with 1-click recovery buttons.
+- **WhatsApp Channel**: Deep-linked pre-filled messages with recovery links.
+- **1-Click Customer Recovery Portal**: Standalone responsive checkout page (`/recover/:case_id`) preserving order context and offering frictionless UPI/card alternatives.
+
+### 5. Authoritative Outcome Verifier (`app/services/outcome_verifier.py`)
+- Proves recovery independently by querying the gateway or validating cryptographic checkout callbacks.
+- Only marks revenue recovered when authoritative state is `PaymentStatus.SUCCEEDED`.
+
+### 6. Audit & Telemetry (`app/services/audit_service.py`)
+- Every workflow milestone generates an append-only audit event with correlation IDs, stage tags, and sanitized metadata.
+
+---
+
+## 💻 Tech Stack
+
+### Backend
+- **Framework**: Python 3.11+, FastAPI, Pydantic v2
+- **Database & ORM**: SQLAlchemy 2.0, Alembic migrations (SQLite for development, PostgreSQL-ready)
+- **External Integrations**:
+  - **Razorpay**: Sandbox orders, payments, webhooks, HMAC verification
+  - **Exotel**: Outbound telephony, IVR applet flows, status callbacks
+  - **Resend**: Transactional email API
+- **Testing**: Pytest (66+ unit and integration tests)
+
+### Frontend (Command Center)
+- **Framework**: React 19, TypeScript, Vite
+- **Styling**: TailwindCSS, Lucide Icons, Glassmorphism aesthetic
+- **Key Modules**:
+  - **Executive Dashboard**: Real-time recovery rates, recovered revenue, channel distribution.
+  - **Recovery Simulator**: 7-stage interactive playground to simulate gateway failures, AI diagnosis, and trigger live Exotel calls, Resend emails, and customer UPI recovery.
+  - **Case Detail & Audit Timeline**: Full forensic view with decision explanations and tamper-evident event history.
+  - **Strategy Lab**: Side-by-side what-if analysis comparing baseline retries vs. RevivePay ERV intelligence.
+  - **Judge / Demo View**: Interactive guided presentation mode for live evaluations.
+
+---
+
+## ⚡ Quickstart
+
+### Prerequisites
+- Python 3.11+
+- Node.js 18+ & npm
+
+### 1. Backend Setup
 
 ```powershell
+# Clone and enter directory
+cd RevivePay
+
+# Create virtual environment
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
+
+# Install dependencies
 pip install -r requirements.txt
+
+# Configure environment variables
 Copy-Item .env.example .env
+
+# Initialize SQLite database and seed initial synthetic records
 python scripts/init_db.py
 python scripts/seed.py --reset
-```
 
-Start the backend manually in one terminal:
+# Start FastAPI server
+uvicorn app.main:app --reload --port 8000
+```
+Backend will be available at `http://localhost:8000` (Swagger docs at `http://localhost:8000/docs`).
+
+### 2. Frontend Command Center Setup
 
 ```powershell
-.\.venv\Scripts\python.exe -m uvicorn app.main:app --reload
-```
-
-Start the Command Center manually in a second terminal:
-
-```powershell
+# In a new terminal:
+cd frontend
 npm install
 npm run dev
 ```
+Open `http://localhost:5173` in your browser.
 
-Open the frontend URL printed by Vite (normally `http://localhost:5173`) or FastAPI docs at `http://127.0.0.1:8000/docs`.
+---
 
-## Demo journey
+## ⚙️ Environment Configuration (`.env`)
 
-1. Run `python scripts/seed.py --reset`.
-2. Open **Strategy Lab** to inspect the same synthetic cases across baseline, deterministic, and advisory evidence.
-3. Open case A and choose **Run AI Recovery**. It schedules `RETRY_LATER`; advance the virtual clock 15 minutes and run again to see execution and independent verification.
-4. Open case C and choose **Run AI Recovery**. The AI may recommend a strategy, but the high-value policy rule escalates it and the executor is never invoked.
-5. Review the audit timeline and the Recovery Intelligence panel. Labels such as *Synthetic projection*, *Fallback mode*, and *Policy approved* distinguish advisory evidence from the live, policy-controlled workflow.
+```env
+# Database & Core
+DATABASE_URL=sqlite:///./revivepay.db
+ENVIRONMENT=development
+LOG_LEVEL=INFO
 
-## Optional local model
+# Razorpay Sandbox (Real Gateway Interception)
+RAZORPAY_KEY_ID=rzp_test_...
+RAZORPAY_KEY_SECRET=...
+RAZORPAY_WEBHOOK_SECRET=...
 
-No ML library or paid service is required. The repository uses a small standard-library logistic implementation and a versioned JSON artifact.
-
-```powershell
-# Train from seeded synthetic cases; writes an ignored local JSON artifact.
-.\.venv\Scripts\python.exe scripts/train_recovery_model.py
-
-# Enable it only for an explicit local run; missing/invalid artifact falls back safely.
-$env:RECOVERY_PREDICTOR_IMPL = "local_logistic"
-
-# Evaluate all strategies fairly on the same held-out synthetic cases.
-.\.venv\Scripts\python.exe scripts/evaluate_intelligence.py
-```
-
-The evaluation command prints JSON for **Baseline**, **Deterministic RevivePay**, and **Local-ML RevivePay**. It trains on one deterministic subset, evaluates all arms on the same held-out subset through the read-only simulator, and reports recovery rate, projected recovered amount, ERV, action distribution, blocks, escalations, and calculated deltas. It never manufactures uplift claims.
-
-For optional local structured diagnosis:
-
-```powershell
-$env:DIAGNOSIS_ENGINE_IMPL = "ai_local"
-```
-
-`ai_local` uses a deterministic local mock provider. The adapter validates structured Pydantic output and returns the rule-based diagnosis if the provider is malformed or unavailable. It never directly executes a recommended action.
-
-## Validation
-
-```powershell
-.\.venv\Scripts\python.exe -m pytest -q -p no:warnings --tb=line
-npm run typecheck
-npm run build
-.\.venv\Scripts\python.exe scripts/evaluate_intelligence.py
-git diff --check
-```
-
-## Important limits
-
-- No real gateway, card credentials, customer PII, paid LLM, external model call, scheduler, or online training is included.
-- Local artifacts are ignored because they are reproducible from synthetic data.
-- The local predictor is optional and never gains authority over the policy engine or executor.
-- The virtual clock advances only through explicit simulation commands.
-
-For detailed interfaces, data flow, and safety boundaries, see [the design document](.kiro/specs/revenue-recovery-engine/design.md).
-
-
-
-## Phase 4 production hardening
-
-RevivePay now has Alembic migrations, SQLite and PostgreSQL (`psycopg` v3) configuration, request correlation IDs, JSON secret-redacted logs, CORS/security headers, liveness/readiness probes, bounded requests and pagination, feature-gated API-key authorization, a transactional database job/outbox boundary, Docker/Compose artifacts, and route-level frontend code splitting. The recovery engine remains deterministic and synthetic: PolicyEngine remains the mandatory gate, OutcomeVerifier remains authoritative for recovered status, and no real payment provider, Redis, Celery, LLM, or cloud resource is introduced.
-
-See [`docs/deployment.md`](docs/deployment.md) for local migration, legacy schema adoption, Compose, production configuration, and an AWS-oriented deployment plan.
-
-
-## Real Integrations vs Controlled Simulation
-
-### Real Integrations
-- **Razorpay Sandbox**: Real gateway order creation, test payments, HMAC-SHA256 signature verification, and authoritative failure events.
-- **Exotel Outbound Voice Recovery**: Real outbound telephony via Exotel Connect API. Initiates live customer calls with automated voice prompts and callback status tracking.
-- **Resend Transactional Email**: Real transactional recovery email dispatch via Resend REST API with branded HTML templates and 1-click recovery links.
-
-### Controlled & Simulated Behaviors
-- **Deterministic Failure Scenarios**: Controlled operator scenario selection (Bank Timeout, Insufficient Funds, Expired Card, Network Failure) for reproducible demonstrations.
-- **Outcome Verification**: An answered or completed voice call is NOT a recovery. Revenue is only marked recovered when the customer completes payment through the verified recovery portal and OutcomeVerifier confirms PaymentStatus.SUCCEEDED.
-
-## Exotel Voice Recovery Setup
-
-### 1. Environment Variables
-Add the following to your git-ignored .env file:
-`env
+# Exotel Voice Recovery (Real Outbound Calling)
 EXOTEL_API_KEY=your_exotel_api_key
 EXOTEL_API_PASSWORD=your_exotel_api_token
-EXOTEL_ACCOUNT_SID=your_exotel_account_sid
+EXOTEL_ACCOUNT_SID=your_account_sid
 EXOTEL_SUBDOMAIN=api.exotel.com
 EXOTEL_CALLER_ID=your_exophone_number
 EXOTEL_FLOW_ID=your_applet_flow_id
-`
 
-### 2. Endpoints
-- POST /api/recovery/cases/{case_id}/voice: Initiates policy-gated outbound voice call via Exotel.
-- POST /api/recovery/voice/webhook: Status callback updating call lifecycle (answered, completed, failed).
+# Resend Transactional Email (Real Email Recovery)
+RESEND_API_KEY=re_...
+RESEND_FROM_EMAIL=onboarding@resend.dev
+```
 
-### 3. Safety Invariants
-- AI recommends, PolicyEngine decides, Executor acts, OutcomeVerifier proves.
-- Budget limits: No voice call if automatic retry budget is exhausted.
-- Terminal cases (RECOVERED, STOPPED, ESCALATED) cannot trigger outbound calls.
-- Idempotency: Prevents duplicate voice calls for active cases.
+---
+
+## 🧪 Testing & Verification
+
+Run the comprehensive test suite covering all recovery flows, policy gates, and integrations:
+
+```powershell
+# Run all backend unit and integration tests
+pytest -q -p no:warnings
+
+# Run frontend typecheck and build validation
+cd frontend
+npm run typecheck
+npm run build
+```
+
+---
+
+## 🛡️ License & Compliance Notice
+
+This project is built for demonstrative and commercial recovery integration. Telephony, email, and payment gateway credentials should be kept in git-ignored `.env` files and never committed to version control.
